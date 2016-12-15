@@ -1,0 +1,41 @@
+*.class
+
+# Package Files #
+*.jar
+*.war
+*.ear
+
+# virtual machine crash logs
+hs_err_pid*
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Intellij
+.idea/
+*.iml
+*.iws
+
+# Mac
+.DS_Store
+
+# Maven
+log/
+target/
+
+# Customized for this project
+*~
+log/
+.classpath
+.project
+.settings/
+.idea/
+.DS_Store
+target
+*.mine
+src/main/resources/*
+*.xls
+*.sh
+*.txt
