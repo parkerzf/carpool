@@ -28,6 +28,7 @@ public class AppMatch
             Utils.TAXI_EUR_PER_KM = Double.parseDouble(args[2]);
         }
         ModelInstance.initInstance(2, graphPath, userPath);
+//        ModelInstance.initInstance(0, graphPath, userPath);
 
         ModelStats.computeInitCost(ModelInstance.users);
 

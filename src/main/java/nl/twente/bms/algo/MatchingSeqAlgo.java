@@ -1,5 +1,7 @@
 package nl.twente.bms.algo;
 
+import com.carrotsearch.hppc.IntIntMap;
+import com.carrotsearch.hppc.IntIntOpenHashMap;
 import nl.twente.bms.struct.User;
 import nl.twente.bms.struct.UserCoverGroup;
 import org.slf4j.Logger;
@@ -15,50 +17,38 @@ public class MatchingSeqAlgo {
     private static final Logger logger = LoggerFactory.getLogger(MatchingSeqAlgo.class);
 
     public static void run(List<User> users) {
-        // manage the pairs in non descending order of uncovered distance in the priority queue
-        // Add a sorted list of user, the user class add a new attribute minUnCoveredDistance, sort based on this
-        // Add a hash table between rider and the related group
-
-//        HashMap<User, PriorityQueue<UserCoverGroup>> userGroupQueueMap = new HashMap();
-//        for(int i = 0; i < users.size(); i++){
-//            userGroupQueueMap.put(users.get(i), new PriorityQueue<>());
-//        }
-
-//        List<User> sortedUserList = new ArrayList<>();
+        // manage the users in non descending order of minimum uncovered distance in the priority queue
         PriorityQueue<User> userQueue = new PriorityQueue<>();
+        // manage the user pair feasible pair in a hashmap
+//        HashMap<User, User> userFeasibleMap = new HashMap<>();
+        IntIntMap userFeasibleMap = new IntIntOpenHashMap();
 
         for (int i = 0; i < users.size(); i++) {
-//            sortedUserList.add(users.get(i));
-            userQueue.offer(users.get(i));
             for (int j = 0; j < users.size(); j++) {
                 if(i == j) continue;
+
                 UserCoverGroup userCoverGroup = new UserCoverGroup(users.get(i), users.get(j));
                 if(userCoverGroup.isInitFeasible()){
-//                    PriorityQueue<UserCoverGroup> queue = userGroupQueueMap.get(users.get(i));
+                    userFeasibleMap.put(i, j);
                     PriorityQueue<UserCoverGroup> queue = users.get(i).getQueue();
                     queue.offer(userCoverGroup);
                 }
             }
         }
 
-//        Collections.sort(sortedUserList);
-//        logger.debug("Sorted User list size: {}", sortedUserList.size());
+        for (int i = 0; i < users.size(); i++) {
+            userQueue.offer(users.get(i));
+        }
+
+        logger.debug("User Feasible Map size: {}", userFeasibleMap.size());
         logger.debug("User Queue size: {}", userQueue.size());
 
-//        for (int i = 0; i < users.size(); i++) {
-////            logger.debug("User {}'s Queue size: {}", sortedUserList.get(i).getUId(), userGroupQueueMap.get(sortedUserList.get(i)).size());
-//            logger.debug("User {}'s Queue size: {}",
-//                    sortedUserList.get(i).getUId(),
-//                    sortedUserList.get(i).getQueue().size());
-//            logger.debug(sortedUserList.get(i).toString());
-//        }
 
         // sequential extension
         List<UserCoverGroup> userGroups = new ArrayList<>();
         PriorityQueue<UserCoverGroup> curQueue;
 
         for (int i = 0; i < users.size(); i++) {
-//            curQueue = sortedUserList.get(i).getQueue();
             curQueue = userQueue.poll().getQueue();
 
             UserCoverGroup firstGroup;
@@ -89,6 +79,7 @@ public class MatchingSeqAlgo {
                 if (firstGroup.hasSaving()) {
                     userGroups.add(firstGroup);
                     firstGroup.registerDriverSet();
+                    firstGroup.updateQueue(userQueue);
                 }
                 else{
                     firstGroup.clear();

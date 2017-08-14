@@ -4,6 +4,7 @@ import nl.twente.bms.model.ModelInstance;
 import nl.twente.bms.utils.Utils;
 
 import java.util.HashSet;
+import java.util.PriorityQueue;
 
 /**
  * @author zhaofeng
@@ -207,5 +208,9 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
             ModelInstance.registeredDriverSet.add(driver);
 
         }
+    }
+
+    public void updateQueue(PriorityQueue<User> userQueue) {
+        
     }
 }
