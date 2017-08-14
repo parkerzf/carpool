@@ -8,6 +8,14 @@
   <name>2016_05_carpool</name>
   <url>http://maven.apache.org</url>
 
+  <repositories>
+    <repository>
+      <id>lhogie.i3s.maven.repo</id>
+      <name>Luc Hogie Maven repository</name>
+      <url>http://www.i3s.unice.fr/~hogie/maven_repository/</url>
+    </repository>
+  </repositories>
+
   <build>
     <plugins>
       <plugin>
