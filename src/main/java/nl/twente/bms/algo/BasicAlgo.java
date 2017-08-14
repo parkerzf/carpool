@@ -32,7 +32,6 @@ public class BasicAlgo {
                 if(userCoverGroup.isInitFeasible()){
                     ArrayList<UserCoverGroup> list = userGroupListMap.get(users.get(i));
                     list.add(userCoverGroup);
-                    users.get(i).updateMinUncoveredDistance(userCoverGroup.getUncoveredDistance());
                 }
             }
         }

@@ -19,41 +19,48 @@ public class MatchingSeqAlgo {
         // Add a sorted list of user, the user class add a new attribute minUnCoveredDistance, sort based on this
         // Add a hash table between rider and the related group
 
-        HashMap<User, PriorityQueue<UserCoverGroup>> userGroupQueueMap = new HashMap();
-        for(int i = 0; i < users.size(); i++){
-            userGroupQueueMap.put(users.get(i), new PriorityQueue<>());
-        }
+//        HashMap<User, PriorityQueue<UserCoverGroup>> userGroupQueueMap = new HashMap();
+//        for(int i = 0; i < users.size(); i++){
+//            userGroupQueueMap.put(users.get(i), new PriorityQueue<>());
+//        }
 
-        List<User> sortedUserList = new ArrayList<>();
+//        List<User> sortedUserList = new ArrayList<>();
+        PriorityQueue<User> userQueue = new PriorityQueue<>();
 
         for (int i = 0; i < users.size(); i++) {
-            sortedUserList.add(users.get(i));
+//            sortedUserList.add(users.get(i));
+            userQueue.offer(users.get(i));
             for (int j = 0; j < users.size(); j++) {
                 if(i == j) continue;
                 UserCoverGroup userCoverGroup = new UserCoverGroup(users.get(i), users.get(j));
                 if(userCoverGroup.isInitFeasible()){
-                    PriorityQueue<UserCoverGroup> queue = userGroupQueueMap.get(users.get(i));
+//                    PriorityQueue<UserCoverGroup> queue = userGroupQueueMap.get(users.get(i));
+                    PriorityQueue<UserCoverGroup> queue = users.get(i).getQueue();
                     queue.offer(userCoverGroup);
-                    users.get(i).updateMinUncoveredDistance(userCoverGroup.getUncoveredDistance());
                 }
             }
         }
 
-        Collections.sort(sortedUserList);
+//        Collections.sort(sortedUserList);
+//        logger.debug("Sorted User list size: {}", sortedUserList.size());
+        logger.debug("User Queue size: {}", userQueue.size());
 
-        logger.debug("Sorted User list size: {}", sortedUserList.size());
-
-        for (int i = 0; i < users.size(); i++) {
-            logger.debug("User {}'s Queue size: {}", sortedUserList.get(i).getUId(), userGroupQueueMap.get(sortedUserList.get(i)).size());
-            logger.debug(sortedUserList.get(i).toString());
-        }
+//        for (int i = 0; i < users.size(); i++) {
+////            logger.debug("User {}'s Queue size: {}", sortedUserList.get(i).getUId(), userGroupQueueMap.get(sortedUserList.get(i)).size());
+//            logger.debug("User {}'s Queue size: {}",
+//                    sortedUserList.get(i).getUId(),
+//                    sortedUserList.get(i).getQueue().size());
+//            logger.debug(sortedUserList.get(i).toString());
+//        }
 
         // sequential extension
         List<UserCoverGroup> userGroups = new ArrayList<>();
         PriorityQueue<UserCoverGroup> curQueue;
 
         for (int i = 0; i < users.size(); i++) {
-            curQueue = userGroupQueueMap.get(sortedUserList.get(i));
+//            curQueue = sortedUserList.get(i).getQueue();
+            curQueue = userQueue.poll().getQueue();
+
             UserCoverGroup firstGroup;
             while((firstGroup = curQueue.poll()) != null){
                 if(firstGroup.isInitFeasible()){
