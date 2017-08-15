@@ -1,8 +1,13 @@
 package nl.twente.bms.struct;
 
+import com.carrotsearch.hppc.IntIntMap;
 import nl.twente.bms.model.ModelInstance;
 import nl.twente.bms.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.PriorityQueue;
 
@@ -12,6 +17,7 @@ import java.util.PriorityQueue;
  */
 public class UserCoverGroup implements Comparable<UserCoverGroup> {
 
+    private static final Logger logger = LoggerFactory.getLogger(UserCoverGroup.class);
     private User rider;
     private User firstDriverCandidate;
     private HashSet<User> driverSet = new HashSet<>();
@@ -38,11 +44,6 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
     }
 
     public boolean updateUncoveredDistance(){
-        //if no update, return false, else true
-//        if(firstDriverCandidate.getStatus() == Utils.RIDER){
-//            this.uncoveredDistance = rider.getTotalDistance();
-//            return true;
-//        }
         int newCoveredDistance = firstDriverCandidate.getCoveredDistance(rider);
         int newUncoveredDistance = rider.getTotalDistance() - newCoveredDistance;
         if(newUncoveredDistance != uncoveredDistance){
@@ -109,7 +110,6 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
     }
 
     public int getUncoveredDistance() {
-//        return rider.getUncoveredDistance();
         return uncoveredDistance;
     }
 
@@ -132,10 +132,6 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
     }
 
     public boolean isFeasible() {
-
-        if(rider.getUId() == 55){
-            System.out.println("debug!");
-        }
         // start and end are the same candidate parking point
         int[] startVertexInfo = rider.getStartVertexInfo();
         int[] endVertexInfo = rider.getEndVertexInfo();
@@ -210,7 +206,21 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
         }
     }
 
-    public void updateQueue(PriorityQueue<User> userQueue) {
-        
+    public void updateQueue(PriorityQueue<User> userQueue, HashMap<User, ArrayList<User>> userFeasibleMap) {
+        if(!driverSet.isEmpty()){
+            for(User driver: driverSet){
+                ArrayList<User> userList = userFeasibleMap.get(driver);
+                for(User user: userList){
+                    if(user.getStatus() == Utils.INDEPENDENT){
+                        // recompute the uncovered distance
+
+                        // 3 steps to update the userQueue
+                    }
+                }
+            }
+        }
+        else{
+            logger.error("The cover group is not merged yet!");
+        }
     }
 }

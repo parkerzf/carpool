@@ -1,7 +1,5 @@
 package nl.twente.bms.algo;
 
-import com.carrotsearch.hppc.IntIntMap;
-import com.carrotsearch.hppc.IntIntOpenHashMap;
 import nl.twente.bms.struct.User;
 import nl.twente.bms.struct.UserCoverGroup;
 import org.slf4j.Logger;
@@ -20,16 +18,22 @@ public class MatchingSeqAlgo {
         // manage the users in non descending order of minimum uncovered distance in the priority queue
         PriorityQueue<User> userQueue = new PriorityQueue<>();
         // manage the user pair feasible pair in a hashmap
-//        HashMap<User, User> userFeasibleMap = new HashMap<>();
-        IntIntMap userFeasibleMap = new IntIntOpenHashMap();
+        HashMap<User, ArrayList<User>> userFeasibleMap = new HashMap<>();
 
         for (int i = 0; i < users.size(); i++) {
             for (int j = 0; j < users.size(); j++) {
                 if(i == j) continue;
-
-                UserCoverGroup userCoverGroup = new UserCoverGroup(users.get(i), users.get(j));
+                User userA = users.get(i);
+                User userB = users.get(j);
+                UserCoverGroup userCoverGroup = new UserCoverGroup(userA, userB);
                 if(userCoverGroup.isInitFeasible()){
-                    userFeasibleMap.put(i, j);
+                    ArrayList<User> userList = userFeasibleMap.get(userA);
+                    if( userList == null){
+                        userList = new ArrayList<>();
+                    }
+                    userList.add(userB);
+                    userFeasibleMap.put(userA, userList);
+
                     PriorityQueue<UserCoverGroup> queue = users.get(i).getQueue();
                     queue.offer(userCoverGroup);
                 }
@@ -79,7 +83,7 @@ public class MatchingSeqAlgo {
                 if (firstGroup.hasSaving()) {
                     userGroups.add(firstGroup);
                     firstGroup.registerDriverSet();
-                    firstGroup.updateQueue(userQueue);
+                    firstGroup.updateQueue(userQueue, userFeasibleMap);
                 }
                 else{
                     firstGroup.clear();
