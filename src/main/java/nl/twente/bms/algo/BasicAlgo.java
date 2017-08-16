@@ -29,7 +29,7 @@ public class BasicAlgo {
             for (int j = 0; j < users.size(); j++) {
                 if(i == j) continue;
                 UserCoverGroup userCoverGroup = new UserCoverGroup(users.get(i), users.get(j));
-                if(userCoverGroup.isInitFeasible()){
+                if(userCoverGroup.isFeasibleBeforeInitMerge()){
                     ArrayList<UserCoverGroup> list = userGroupListMap.get(users.get(i));
                     list.add(userCoverGroup);
                 }
@@ -53,7 +53,7 @@ public class BasicAlgo {
             curList = userGroupListMap.get(sortedUserList.get(i));
             UserCoverGroup firstGroup = null;
             for(UserCoverGroup curGroup : curList){
-                if(curGroup.isInitFeasible()){
+                if(curGroup.isFeasibleBeforeInitMerge()){
                     firstGroup = curGroup;
                     break;
                 }
@@ -64,7 +64,7 @@ public class BasicAlgo {
 
                 for(UserCoverGroup curGroup : curList){
                     boolean isUpdated = curGroup.updateUncoveredDistance();
-                    if (!curGroup.isInitFeasible()) {
+                    if (!curGroup.isFeasibleBeforeInitMerge()) {
                         continue;
                     }
 

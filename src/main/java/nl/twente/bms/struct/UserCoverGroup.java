@@ -23,14 +23,13 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
     private HashSet<User> driverSet = new HashSet<>();
     //the distance that are not covered by this group's drivers
     private int uncoveredDistance;
+    private boolean initMerged = false;
 
     public UserCoverGroup(User rider, User driver){
         this.rider = rider;
         this.firstDriverCandidate = driver;
-
         int initCoveredDistance = driver.getCoveredDistance(rider);
         uncoveredDistance = rider.getTotalDistance() - initCoveredDistance;
-
     }
 
 
@@ -41,16 +40,25 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
             driverSet.add(firstDriverCandidate);
             rider.setStatus(Utils.RIDER);
         }
+        initMerged = true;
     }
 
     public boolean updateUncoveredDistance(){
+        assert initMerged == false;
+
+//        if(rider.getUId() == 75){
+//            logger.debug(String.format("debug! u%d", rider.getUId()));
+//        }
         int newCoveredDistance = firstDriverCandidate.getCoveredDistance(rider);
         int newUncoveredDistance = rider.getTotalDistance() - newCoveredDistance;
-        if(newUncoveredDistance != uncoveredDistance){
+        assert (newUncoveredDistance >= uncoveredDistance) :
+                String.format("new, prev uncover: %d,%d|rider: u%d",
+                        newUncoveredDistance, uncoveredDistance, rider.getUId());
+        if(newUncoveredDistance > uncoveredDistance){
             this.uncoveredDistance = newUncoveredDistance;
             return true;
         }
-
+        // no updates means that it is up to date so that it is ready to be added to the main group
         return false;
     }
 
@@ -59,6 +67,7 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
         if(isMerged){
             driver.setStatus(Utils.DRIVER);
             driverSet.add(driver);
+            uncoveredDistance = rider.getUncoveredDistance();
         }
     }
 
@@ -70,43 +79,40 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
     @Override
     public String toString(){
         StringBuilder sb = new StringBuilder();
-        sb.append("\nrider:\n");
-        sb.append(rider.toString());
+        sb.append("rider:u" + rider.getUId() + "|");
+        sb.append(String.format("total,uncover:%d,%d:", rider.getTotalDistance(), uncoveredDistance) + "|");
+        sb.append(String.format("self cost,rider cost: %.1f,%.1f|", rider.getSelfDrivingCost(), rider.getCost(true)));
 
-        sb.append("\ndrivers:\n[");
         if(driverSet.size() == 0){
-            sb.append("\n");
-            sb.append(firstDriverCandidate.toString());
-            sb.append(',');
+            sb.append("candidate: u" + firstDriverCandidate.getUId());
         }
         else{
+            sb.append("drivers:[");
             for(User driver: driverSet){
-                sb.append("\n");
-                sb.append(driver.toString());
-                sb.append(',');
+                sb.append("u" + driver.getUId() + ",");
             }
+            sb.append("]");
         }
-        sb.append("\n]");
-
         return sb.toString();
     }
 
     public String getSummaryStr(){
         StringBuilder sb = new StringBuilder();
-        sb.append("\nrider: u" + rider.getUId() + "|");
-        sb.append("uncovered distance:" + rider.getUncoveredDistance() + "\n");
-        sb.append("drivers:[");
+        sb.append("rider:u" + rider.getUId() + "|");
+        sb.append(String.format("total,uncover:%d,%d:", rider.getTotalDistance(), uncoveredDistance) + "|");
+        sb.append(String.format("self cost,rider cost: %.1f,%.1f|", rider.getSelfDrivingCost(), rider.getCost(true)));
+
         if(driverSet.size() == 0){
-            sb.append("u" + firstDriverCandidate.getUId() + ",");
+            sb.append("candidate: u" + firstDriverCandidate.getUId());
         }
         else{
+            sb.append("drivers:[");
             for(User driver: driverSet){
                 sb.append("u" + driver.getUId() + ",");
             }
+            sb.append("]");
         }
-        sb.append("]");
         return sb.toString();
-
     }
 
     public int getUncoveredDistance() {
@@ -125,10 +131,15 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
         }
     }
 
-    public boolean isInitFeasible() {
+    public boolean isFeasibleBeforeInitMerge() {
+        assert initMerged == false;
         return rider.getStatus() != Utils.DRIVER
-                && firstDriverCandidate.getCoveredDistance(rider) != 0
+                && firstDriverCandidate.getCoveredDistance(rider) > 0
                 &&  firstDriverCandidate.getStatus() != Utils.RIDER;
+    }
+
+    public boolean isAllCovered(){
+        return uncoveredDistance == 0;
     }
 
     public boolean isFeasible() {
@@ -202,19 +213,38 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
         for(User driver: driverSet){
             driver.storePrevStatus();
             ModelInstance.registeredDriverSet.add(driver);
-
         }
     }
 
-    public void updateQueue(PriorityQueue<User> userQueue, HashMap<User, ArrayList<User>> userFeasibleMap) {
+    public void updateQueue(PriorityQueue<User> userQueue, HashMap<User, ArrayList<UserCoverGroup>> driverGroupMap) {
         if(!driverSet.isEmpty()){
             for(User driver: driverSet){
-                ArrayList<User> userList = userFeasibleMap.get(driver);
-                for(User user: userList){
-                    if(user.getStatus() == Utils.INDEPENDENT){
+                ArrayList<UserCoverGroup> userCoverGroupList = driverGroupMap.get(driver);
+                for(UserCoverGroup curGroup: userCoverGroupList){
+                    User rider = curGroup.getRider();
+                    if(rider.getStatus() == Utils.INDEPENDENT){
                         // recompute the uncovered distance
+                        int prevMinUncoveredDistance = rider.getMinUncoveredDistance();
+                        PriorityQueue<UserCoverGroup> curQueue = rider.getQueue();
 
-                        // 3 steps to update the userQueue
+                        // update curQueue
+                        boolean isUpdated = curGroup.updateUncoveredDistance();
+                        if(isUpdated) {
+                            curQueue.remove(curGroup);
+                            if(curGroup.uncoveredDistance < rider.getTotalDistance()) {
+                                curQueue.offer(curGroup);
+                            }
+                        }
+
+                        // update userQueue
+                        int minUncoveredDistance = rider.getMinUncoveredDistance();
+                        assert minUncoveredDistance >= prevMinUncoveredDistance;
+                        if(minUncoveredDistance > prevMinUncoveredDistance){
+                            userQueue.remove(rider);
+                            if(minUncoveredDistance < rider.getTotalDistance()) {
+                                userQueue.offer(rider);
+                            }
+                        }
                     }
                 }
             }
@@ -222,5 +252,9 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
         else{
             logger.error("The cover group is not merged yet!");
         }
+    }
+
+    public User getRider() {
+        return rider;
     }
 }

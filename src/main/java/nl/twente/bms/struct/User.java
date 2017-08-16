@@ -18,13 +18,12 @@ import java.util.PriorityQueue;
 public class User implements Comparable<User> {
 
     private int uId;
-
     private int status = Utils.INDEPENDENT;
+    private int totalDistance = 0;
 
     private List<Leg> legs = new ArrayList<>();
 
     private IntSet candidateParkingPointSet = new IntHashSet();
-//    private int minUncoveredDistance = Integer.MAX_VALUE;
     private PriorityQueue<UserCoverGroup> queue = new PriorityQueue<>();
 
     public User(){
@@ -52,16 +51,11 @@ public class User implements Comparable<User> {
             return queue.peek().getUncoveredDistance();
         }
         else{
-            return Integer.MAX_VALUE;
+            return getTotalDistance();
         }
     }
 
     public boolean merge(User user) {
-//        List<Leg> otherLegs = user.getLegs();
-//        boolean isMerged = false;
-//        for (int i = 0; i < Math.min(legs.size(), otherLegs.size()); i++)
-//            isMerged |= this.legAt(i).merge(user.legAt(i));
-
         int i = 0;
         int j = legs.size() - 1;
         int p = 0;
@@ -109,17 +103,30 @@ public class User implements Comparable<User> {
         return isMerged;
     }
 
-    public String toString(){
+    public String getSummaryStr() {
         StringBuilder b = new StringBuilder();
+        String status = "";
         if(getStatus() == Utils.DRIVER){
-            b.append(String.format("u%d |cost: %.1f| min uncoverage: %d| driver\n", uId, getCost(true), getMinUncoveredDistance()));
+            status = "driver";
         }
         else if(getStatus() == Utils.RIDER){
-            b.append(String.format("u%d |cost: %.1f| min uncoverage: %d| rider\n", uId, getCost(true), getMinUncoveredDistance()));
+            status = "rider";
         }
         else{
-            b.append(String.format("u%d |cost: %.1f| min uncoverage: %d| independent\n", uId, getCost(true), getMinUncoveredDistance()));
+            status = "independent";
         }
+
+        b.append(String.format("u%d, %s|cost: %.1f|total,min uncover: %d,%d|queue size: %d",
+                uId, status, getCost(true), getTotalDistance(), getMinUncoveredDistance(), queue.size()));
+
+        return b.toString();
+    }
+
+    public String toString(){
+        StringBuilder b = new StringBuilder();
+        b.append(getSummaryStr());
+
+        b.append('\n');
 
         for (int i = 0; i < legs.size(); ++i) {
             b.append(String.format("%s\n", legs.get(i)));
@@ -303,11 +310,11 @@ public class User implements Comparable<User> {
     }
 
     public int getTotalDistance() {
-        int totalDistance = 0;
-        for(Leg leg: legs){
-            totalDistance += leg.getLength();
+        if(totalDistance == 0){
+            for(Leg leg: legs){
+                totalDistance += leg.getLength();
+            }
         }
-
         return totalDistance;
     }
 
@@ -486,7 +493,6 @@ public class User implements Comparable<User> {
 
     @Override
     public int compareTo(User someUser) {
-//        return Double.compare(minUncoveredDistance, someUser.minUncoveredDistance);
         return Double.compare(getMinUncoveredDistance(), someUser.getMinUncoveredDistance());
     }
 

@@ -498,7 +498,7 @@ public class Leg extends AbstractPath{
 
 
     public boolean edgeIsTaxi(int i) {
-        return legs[i].id== 0;
+        return legs[i].id == 0;
     }
 
 

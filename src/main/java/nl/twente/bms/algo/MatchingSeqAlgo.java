@@ -18,7 +18,7 @@ public class MatchingSeqAlgo {
         // manage the users in non descending order of minimum uncovered distance in the priority queue
         PriorityQueue<User> userQueue = new PriorityQueue<>();
         // manage the user pair feasible pair in a hashmap
-        HashMap<User, ArrayList<User>> userFeasibleMap = new HashMap<>();
+        HashMap<User, ArrayList<UserCoverGroup>> driverGroupMap = new HashMap<>();
 
         for (int i = 0; i < users.size(); i++) {
             for (int j = 0; j < users.size(); j++) {
@@ -26,13 +26,13 @@ public class MatchingSeqAlgo {
                 User userA = users.get(i);
                 User userB = users.get(j);
                 UserCoverGroup userCoverGroup = new UserCoverGroup(userA, userB);
-                if(userCoverGroup.isInitFeasible()){
-                    ArrayList<User> userList = userFeasibleMap.get(userA);
-                    if( userList == null){
-                        userList = new ArrayList<>();
+                if(userCoverGroup.isFeasibleBeforeInitMerge()){
+                    ArrayList<UserCoverGroup> userCoverGroupList = driverGroupMap.get(userB);
+                    if( userCoverGroupList == null){
+                        userCoverGroupList = new ArrayList<>();
                     }
-                    userList.add(userB);
-                    userFeasibleMap.put(userA, userList);
+                    userCoverGroupList.add(userCoverGroup);
+                    driverGroupMap.put(userB, userCoverGroupList);
 
                     PriorityQueue<UserCoverGroup> queue = users.get(i).getQueue();
                     queue.offer(userCoverGroup);
@@ -41,23 +41,36 @@ public class MatchingSeqAlgo {
         }
 
         for (int i = 0; i < users.size(); i++) {
-            userQueue.offer(users.get(i));
+            if(users.get(i).getQueue().size() > 0){
+                userQueue.offer(users.get(i));
+            }
+            else{
+                logger.info("u{} is not enqueued because no user cover it", users.get(i).getUId());
+            }
         }
 
-        logger.debug("User Feasible Map size: {}", userFeasibleMap.size());
+
+
+        logger.debug("Driver Group Map size: {}", driverGroupMap.size());
         logger.debug("User Queue size: {}", userQueue.size());
+
+        for(User user: users) {
+            logger.debug(user.getSummaryStr());
+        }
 
 
         // sequential extension
         List<UserCoverGroup> userGroups = new ArrayList<>();
-        PriorityQueue<UserCoverGroup> curQueue;
 
-        for (int i = 0; i < users.size(); i++) {
-            curQueue = userQueue.poll().getQueue();
+        User curUser;
+        PriorityQueue<UserCoverGroup> curQueue;
+        while((curUser = userQueue.poll()) != null){
+
+            curQueue = curUser.getQueue();
 
             UserCoverGroup firstGroup;
             while((firstGroup = curQueue.poll()) != null){
-                if(firstGroup.isInitFeasible()){
+                if(firstGroup.isFeasibleBeforeInitMerge()){
                     break;
                 }
             }
@@ -65,39 +78,45 @@ public class MatchingSeqAlgo {
             if(firstGroup != null) {
                 firstGroup.initMerge();
 
-                UserCoverGroup curGroup;
-                while ((curGroup = curQueue.poll()) != null) {
-                    boolean isUpdated = curGroup.updateUncoveredDistance();
-                    if (!curGroup.isInitFeasible()) {
-                        continue;
-                    }
+                if(!firstGroup.isAllCovered()){
+                    UserCoverGroup curGroup;
+                    while ((curGroup = curQueue.poll()) != null) {
+                        boolean isUpdated = curGroup.updateUncoveredDistance();
+                        if (!curGroup.isFeasibleBeforeInitMerge()) {
+                            continue;
+                        }
 
-                    if (isUpdated) {
-                        curQueue.offer(curGroup);
-                    } else {
-                        firstGroup.addDriver(curGroup.getFirstDriverCandidate());
+                        if (isUpdated) {
+                            curQueue.offer(curGroup);
+                        } else {
+                            firstGroup.addDriver(curGroup.getFirstDriverCandidate());
+                            if(firstGroup.isAllCovered()) break;
+                        }
                     }
+                    firstGroup.makeFeasible();
                 }
 
-                firstGroup.makeFeasible();
                 if (firstGroup.hasSaving()) {
                     userGroups.add(firstGroup);
                     firstGroup.registerDriverSet();
-                    firstGroup.updateQueue(userQueue, userFeasibleMap);
+                    firstGroup.updateQueue(userQueue, driverGroupMap);
                 }
-                else{
+                else {
                     firstGroup.clear();
                 }
             }
         }
 
+        logger.debug("*******************************************************");
+
         for(UserCoverGroup finalGroup: userGroups) {
             logger.debug(finalGroup.getSummaryStr());
         }
 
-        for(User user: users) {
-            logger.debug(user.toString());
-        }
+        logger.debug("*******************************************************");
 
+        for(User user: users) {
+            logger.debug(user.getSummaryStr());
+        }
     }
 }
