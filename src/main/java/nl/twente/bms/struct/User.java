@@ -105,19 +105,9 @@ public class User implements Comparable<User> {
 
     public String getSummaryStr() {
         StringBuilder b = new StringBuilder();
-        String status = "";
-        if(getStatus() == Utils.DRIVER){
-            status = "driver";
-        }
-        else if(getStatus() == Utils.RIDER){
-            status = "rider";
-        }
-        else{
-            status = "independent";
-        }
 
-        b.append(String.format("u%d, %s|cost: %.1f|total,min uncover: %d,%d|queue size: %d",
-                uId, status, getCost(true), getTotalDistance(), getMinUncoveredDistance(), queue.size()));
+        b.append(String.format("u%d(%s)|cost: %.1f|total,min uncover: %d,%d|queue size: %d",
+                uId, Utils.getStatusStr(getStatus()), getCost(true), getTotalDistance(), getMinUncoveredDistance(), queue.size()));
 
         return b.toString();
     }
@@ -500,7 +490,9 @@ public class User implements Comparable<User> {
         for(Leg leg: legs){
             leg.clear();
         }
-        if(!ModelInstance.registeredDriverSet.contains(this)) setStatus(Utils.INDEPENDENT);
+        if(!ModelInstance.registeredDriverSet.contains(this)) {
+            setStatus(Utils.INDEPENDENT);
+        }
     }
 
     public int[] findAndResetToMostConservativeStart(int[] startVertexInfo) {

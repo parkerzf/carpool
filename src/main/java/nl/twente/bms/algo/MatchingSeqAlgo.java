@@ -1,7 +1,9 @@
 package nl.twente.bms.algo;
 
+import nl.twente.bms.model.ModelInstance;
 import nl.twente.bms.struct.User;
 import nl.twente.bms.struct.UserCoverGroup;
+import nl.twente.bms.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +28,7 @@ public class MatchingSeqAlgo {
                 User userA = users.get(i);
                 User userB = users.get(j);
                 UserCoverGroup userCoverGroup = new UserCoverGroup(userA, userB);
-                if(userCoverGroup.isFeasibleBeforeInitMerge()){
+                if(userCoverGroup.isCoveredBeforeInitMerge()){
                     ArrayList<UserCoverGroup> userCoverGroupList = driverGroupMap.get(userB);
                     if( userCoverGroupList == null){
                         userCoverGroupList = new ArrayList<>();
@@ -34,7 +36,7 @@ public class MatchingSeqAlgo {
                     userCoverGroupList.add(userCoverGroup);
                     driverGroupMap.put(userB, userCoverGroupList);
 
-                    PriorityQueue<UserCoverGroup> queue = users.get(i).getQueue();
+                    PriorityQueue<UserCoverGroup> queue = userA.getQueue();
                     queue.offer(userCoverGroup);
                 }
             }
@@ -65,7 +67,7 @@ public class MatchingSeqAlgo {
         User curUser;
         PriorityQueue<UserCoverGroup> curQueue;
         while((curUser = userQueue.poll()) != null){
-
+            if(curUser.getStatus() == Utils.DRIVER) continue;
             curQueue = curUser.getQueue();
 
             UserCoverGroup firstGroup;
@@ -81,6 +83,7 @@ public class MatchingSeqAlgo {
                 if(!firstGroup.isAllCovered()){
                     UserCoverGroup curGroup;
                     while ((curGroup = curQueue.poll()) != null) {
+                        logger.debug(String.format("update curgroup %s", curGroup.getSummaryStr()));
                         boolean isUpdated = curGroup.updateUncoveredDistance();
                         if (!curGroup.isFeasibleBeforeInitMerge()) {
                             continue;
@@ -96,13 +99,16 @@ public class MatchingSeqAlgo {
                     firstGroup.makeFeasible();
                 }
 
+                ModelInstance.registeredFailedRiderSet.add(firstGroup.getRider());
                 if (firstGroup.hasSaving()) {
                     userGroups.add(firstGroup);
                     firstGroup.registerDriverSet();
                     firstGroup.updateQueue(userQueue, driverGroupMap);
+                    logger.debug(String.format("Final: %s", firstGroup.getSummaryStr()));
                 }
                 else {
                     firstGroup.clear();
+                    logger.debug(String.format("Clear: %s", firstGroup.getSummaryStr()));
                 }
             }
         }

@@ -82,4 +82,17 @@ public class Utils {
         return idx >= 0 ? filePath.substring(idx + 1) : filePath;
     }
 
+    public static String getStatusStr(int statusCode){
+        switch (statusCode){
+            case Utils.DRIVER:
+                return "driver";
+            case Utils.RIDER:
+                return "rider";
+            case Utils.INDEPENDENT:
+                return "independent";
+            default:
+                return "undefined";
+        }
+    }
+
 }
