@@ -148,7 +148,7 @@ public class Leg extends AbstractPath{
             return "[path does not exist]";
         } else {
             StringBuilder b = new StringBuilder();
-            b.append(String.format("l%d | cost: %.1f| ", id, getCost(true)));
+            b.append(String.format("l%d | cost: %.1f\n", id, getCost(true)));
             for (int i = 0; i < getSize(); ++i) {
                 int v = this.getVertexAt(i);
 
@@ -157,7 +157,7 @@ public class Leg extends AbstractPath{
                 );
 
                 if (i < getSize() - 1) {
-                    b.append(String.format(" --[id:%d, cap:%d, len:%d]-> ", legs[i].id, getUsedCapacity(i), lengths[i]));
+                    b.append(String.format(" --[id:%d, cap:%d, len:%d]->\n", legs[i].id, getUsedCapacity(i), lengths[i]));
                 }
             }
             return b.toString();
@@ -222,9 +222,6 @@ public class Leg extends AbstractPath{
                     && (!someLeg.edgeIsCovered(j-1))){
                 //someLeg.legs[j-1].id == someLeg.id || someLeg.legs[j-1].id == 0)
                 coveredDistance += lengths[i-1];
-            }
-            else{
-                break;
             }
         }
 

@@ -1,6 +1,5 @@
 package nl.twente.bms.struct;
 
-import com.carrotsearch.hppc.IntIntMap;
 import nl.twente.bms.model.ModelInstance;
 import nl.twente.bms.utils.Utils;
 import org.slf4j.Logger;
@@ -35,23 +34,25 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
 
     public void initMerge() {
         boolean isMerged = firstDriverCandidate.merge(rider);
-        if(isMerged){
-            firstDriverCandidate.setStatus(Utils.DRIVER);
-            driverSet.add(firstDriverCandidate);
-            rider.setStatus(Utils.RIDER);
-            initMerged = true;
-            logger.debug(String.format("init merged: %s", this.getSummaryStr()));
-        }
+        assert (isMerged == true): "should be able to merge: " + getSummaryStr();
+        firstDriverCandidate.setStatus(Utils.DRIVER);
+        driverSet.add(firstDriverCandidate);
+        rider.setStatus(Utils.RIDER);
+        initMerged = true;
     }
 
     public boolean updateUncoveredDistance(){
+        if(getRider().getUId() == 738 && getFirstDriverCandidate().getUId() == 763){
+            logger.debug("debug!");
+        }
         assert (initMerged == false): "init merged: " + this.getSummaryStr();
 
         int newCoveredDistance = firstDriverCandidate.getCoveredDistance(rider);
         int newUncoveredDistance = rider.getTotalDistance() - newCoveredDistance;
+
         assert (newUncoveredDistance >= uncoveredDistance):
-                String.format("new < prev uncover: %d,%d|rider: u%d",
-                        newUncoveredDistance, uncoveredDistance, rider.getUId());
+                String.format("new < prev uncover: %d,%d|%s",
+                        newUncoveredDistance, uncoveredDistance, this.getSummaryStr());
         if(newUncoveredDistance > uncoveredDistance){
             this.uncoveredDistance = newUncoveredDistance;
             return true;
@@ -155,8 +156,7 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
     public boolean isFeasibleBeforeInitMerge() {
         assert initMerged == false;
         return rider.getStatus() != Utils.DRIVER
-                &&  firstDriverCandidate.getStatus() != Utils.RIDER
-                && rider.getTotalDistance() - uncoveredDistance > 0;
+                &&  firstDriverCandidate.getStatus() != Utils.RIDER;
     }
 
     public boolean isAllCovered(){
@@ -247,13 +247,13 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
                 logger.debug(String.format("driver u%d covergroup list size %d", driver.getUId(), userCoverGroupList.size()));
                 for(UserCoverGroup curGroup: userCoverGroupList){
                     User rider = curGroup.getRider();
-                    if(!ModelInstance.registeredFailedRiderSet.contains(rider) && rider.getStatus() == Utils.INDEPENDENT){
+                    if(!ModelInstance.registeredFinishedRiderSet.contains(rider) && rider.getStatus() == Utils.INDEPENDENT){
                         // recompute the uncovered distance
                         int prevMinUncoveredDistance = rider.getMinUncoveredDistance();
                         PriorityQueue<UserCoverGroup> curQueue = rider.getQueue();
 
                         // update curQueue
-                        logger.debug(String.format("update curgroup %s", curGroup.getSummaryStr()));
+                        logger.debug(String.format("update pair: %s", curGroup.getSummaryStr()));
                         boolean isUpdated = curGroup.updateUncoveredDistance();
                         if(isUpdated) {
                             curQueue.remove(curGroup);

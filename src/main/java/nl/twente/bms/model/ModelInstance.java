@@ -27,7 +27,7 @@ public class ModelInstance {
     public static HashBasedTable<Integer, Integer, Integer> legVertexMaxTimeTable = HashBasedTable.create();
 
     public static HashSet<User> registeredDriverSet = new HashSet<>();
-    public static HashSet<User> registeredFailedRiderSet = new HashSet<>();
+    public static HashSet<User> registeredFinishedRiderSet = new HashSet<>();
 
     public static void initInstance(int type, String graphPath, String userPath){
         if(type == 0) initTestInstance();

@@ -67,25 +67,36 @@ public class MatchingSeqAlgo {
         User curUser;
         PriorityQueue<UserCoverGroup> curQueue;
         while((curUser = userQueue.poll()) != null){
+
+            if(curUser.getUId() == 738){
+                logger.debug("debug!");
+            }
             if(curUser.getStatus() == Utils.DRIVER) continue;
             curQueue = curUser.getQueue();
 
             UserCoverGroup firstGroup;
             while((firstGroup = curQueue.poll()) != null){
-                if(firstGroup.isFeasibleBeforeInitMerge()){
+                if(firstGroup.isFeasibleBeforeInitMerge() && firstGroup.isCoveredBeforeInitMerge()){
                     break;
                 }
             }
 
             if(firstGroup != null) {
                 firstGroup.initMerge();
+                logger.debug(String.format("init merged: %s", firstGroup.getSummaryStr()));
 
                 if(!firstGroup.isAllCovered()){
                     UserCoverGroup curGroup;
                     while ((curGroup = curQueue.poll()) != null) {
-                        logger.debug(String.format("update curgroup %s", curGroup.getSummaryStr()));
-                        boolean isUpdated = curGroup.updateUncoveredDistance();
                         if (!curGroup.isFeasibleBeforeInitMerge()) {
+                            continue;
+                        }
+
+                        logger.debug(String.format("before update pair: %s", curGroup.getSummaryStr()));
+                        boolean isUpdated = curGroup.updateUncoveredDistance();
+                        logger.debug(String.format("after  update pair: %s", curGroup.getSummaryStr()));
+
+                        if(!curGroup.isCoveredBeforeInitMerge()){
                             continue;
                         }
 
@@ -93,13 +104,15 @@ public class MatchingSeqAlgo {
                             curQueue.offer(curGroup);
                         } else {
                             firstGroup.addDriver(curGroup.getFirstDriverCandidate());
+                            logger.debug(String.format("add: %s", firstGroup.getSummaryStr()));
+
                             if(firstGroup.isAllCovered()) break;
                         }
                     }
                     firstGroup.makeFeasible();
                 }
 
-                ModelInstance.registeredFailedRiderSet.add(firstGroup.getRider());
+                ModelInstance.registeredFinishedRiderSet.add(firstGroup.getRider());
                 if (firstGroup.hasSaving()) {
                     userGroups.add(firstGroup);
                     firstGroup.registerDriverSet();
