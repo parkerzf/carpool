@@ -55,6 +55,7 @@ public class User implements Comparable<User> {
         }
     }
 
+    //TODO update all the related legs time contraints
     public boolean merge(User user) {
         int i = 0;
         int j = legs.size() - 1;

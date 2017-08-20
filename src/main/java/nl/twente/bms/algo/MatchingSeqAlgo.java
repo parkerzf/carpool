@@ -47,7 +47,7 @@ public class MatchingSeqAlgo {
                 userQueue.offer(users.get(i));
             }
             else{
-                logger.info("u{} is not enqueued because no user cover it", users.get(i).getUId());
+                logger.debug("u{} is not enqueued because no user cover it", users.get(i).getUId());
             }
         }
 
@@ -68,7 +68,7 @@ public class MatchingSeqAlgo {
         PriorityQueue<UserCoverGroup> curQueue;
         while((curUser = userQueue.poll()) != null){
 
-            if(curUser.getUId() == 738){
+            if(curUser.getUId() == 41){
                 logger.debug("debug!");
             }
             if(curUser.getStatus() == Utils.DRIVER) continue;
@@ -114,12 +114,16 @@ public class MatchingSeqAlgo {
 
                 ModelInstance.registeredFinishedRiderSet.add(firstGroup.getRider());
                 if (firstGroup.hasSaving()) {
+                    logger.debug(String.format("Final: %s", firstGroup.getSummaryStr()));
                     userGroups.add(firstGroup);
                     firstGroup.registerDriverSet();
                     firstGroup.updateQueue(userQueue, driverGroupMap);
-                    logger.debug(String.format("Final: %s", firstGroup.getSummaryStr()));
+
                 }
                 else {
+                    if(firstGroup.getRider().getUId()==81){
+                        logger.debug("debug!");
+                    }
                     firstGroup.clear();
                     logger.debug(String.format("Clear: %s", firstGroup.getSummaryStr()));
                 }

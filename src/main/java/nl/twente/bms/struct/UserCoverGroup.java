@@ -33,16 +33,28 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
 
 
     public void initMerge() {
-        boolean isMerged = firstDriverCandidate.merge(rider);
-        assert (isMerged == true): "should be able to merge: " + getSummaryStr();
-        firstDriverCandidate.setStatus(Utils.DRIVER);
-        driverSet.add(firstDriverCandidate);
+        addDriver(firstDriverCandidate);
+//        boolean isMerged = firstDriverCandidate.merge(rider);
+//        assert (isMerged == true): "should be able to merge: " + getSummaryStr();
+//        firstDriverCandidate.setStatus(Utils.DRIVER);
+//        driverSet.add(firstDriverCandidate);
         rider.setStatus(Utils.RIDER);
         initMerged = true;
     }
 
+    public void addDriver(User driver) {
+        if(driver.getUId()==92){
+            logger.debug("debug!");
+        }
+        boolean isMerged = driver.merge(rider);
+        assert (isMerged == true): "should be able to merge: " + getSummaryStr();
+        driver.setStatus(Utils.DRIVER);
+        driverSet.add(driver);
+        uncoveredDistance = rider.getUncoveredDistance();
+    }
+
     public boolean updateUncoveredDistance(){
-        if(getRider().getUId() == 738 && getFirstDriverCandidate().getUId() == 763){
+        if(getRider().getUId() == 76 && getFirstDriverCandidate().getUId() == 92){
             logger.debug("debug!");
         }
         assert (initMerged == false): "init merged: " + this.getSummaryStr();
@@ -50,9 +62,11 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
         int newCoveredDistance = firstDriverCandidate.getCoveredDistance(rider);
         int newUncoveredDistance = rider.getTotalDistance() - newCoveredDistance;
 
-        assert (newUncoveredDistance >= uncoveredDistance):
-                String.format("new < prev uncover: %d,%d|%s",
-                        newUncoveredDistance, uncoveredDistance, this.getSummaryStr());
+        if (newUncoveredDistance < uncoveredDistance){
+            logger.error(String.format("new < prev uncover: %d,%d|%s", newUncoveredDistance, uncoveredDistance, this.getSummaryStr()));
+            System.exit(-1);
+        }
+
         if(newUncoveredDistance > uncoveredDistance){
             this.uncoveredDistance = newUncoveredDistance;
             return true;
@@ -66,24 +80,17 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
 
         int newCoveredDistance = firstDriverCandidate.getCoveredDistance(rider);
         int newUncoveredDistance = rider.getTotalDistance() - newCoveredDistance;
-        assert (newUncoveredDistance >= uncoveredDistance):
-                String.format("new < prev uncover: %d,%d|rider: u%d",
-                        newUncoveredDistance, uncoveredDistance, rider.getUId());
+
+        if (newUncoveredDistance < uncoveredDistance){
+            logger.error(String.format("new < prev uncover: %d,%d|rider: u%d", newUncoveredDistance, uncoveredDistance, rider.getUId()));
+            System.exit(-1);
+        }
         if(newUncoveredDistance > uncoveredDistance){
             this.uncoveredDistance = newUncoveredDistance;
             return true;
         }
         // no updates means that it is up to date so that it is ready to be added to the main group
         return false;
-    }
-
-    public void addDriver(User driver) {
-        boolean isMerged = driver.merge(rider);
-        if(isMerged){
-            driver.setStatus(Utils.DRIVER);
-            driverSet.add(driver);
-            uncoveredDistance = rider.getUncoveredDistance();
-        }
     }
 
     @Override
@@ -241,7 +248,7 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
         if(!driverSet.isEmpty()){
             for(User driver: driverSet){
                 ArrayList<UserCoverGroup> userCoverGroupList = driverGroupMap.get(driver);
-                if(driver.getUId() == 39){
+                 if(driver.getUId() == 39){
                     logger.debug(String.format("debug u%d", driver.getUId()));
                 }
                 logger.debug(String.format("driver u%d covergroup list size %d", driver.getUId(), userCoverGroupList.size()));
@@ -253,16 +260,23 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
                         PriorityQueue<UserCoverGroup> curQueue = rider.getQueue();
 
                         // update curQueue
-                        logger.debug(String.format("update pair: %s", curGroup.getSummaryStr()));
+                        logger.debug(String.format("before update pair: %s", curGroup.getSummaryStr()));
                         boolean isUpdated = curGroup.updateUncoveredDistance();
+                        logger.debug(String.format("after  update pair: %s", curGroup.getSummaryStr()));
                         if(isUpdated) {
+                            logger.debug(String.format("cross update: %s", curGroup.getSummaryStr()));
                             curQueue.remove(curGroup);
                             if(curGroup.uncoveredDistance < rider.getTotalDistance()) {
                                 curQueue.offer(curGroup);
                             }
                             // update userQueue
                             int minUncoveredDistance = rider.getMinUncoveredDistance();
-                            assert minUncoveredDistance >= prevMinUncoveredDistance;
+
+                            if (minUncoveredDistance < prevMinUncoveredDistance){
+                                logger.error(String.format("new < prev minuncover: %d,%d|%s", minUncoveredDistance, prevMinUncoveredDistance, this.getSummaryStr()));
+                                System.exit(-1);
+                            }
+
                             if(minUncoveredDistance > prevMinUncoveredDistance){
                                 userQueue.remove(rider);
                                 if(minUncoveredDistance < rider.getTotalDistance()) {
