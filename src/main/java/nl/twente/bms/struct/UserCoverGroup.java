@@ -5,10 +5,7 @@ import nl.twente.bms.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.PriorityQueue;
+import java.util.*;
 
 /**
  * @author zhaofeng
@@ -43,11 +40,14 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
     }
 
     public void addDriver(User driver) {
-        if(driver.getUId()==92){
+        if(driver.getUId()==25){
             logger.debug("debug!");
         }
         boolean isMerged = driver.merge(rider);
-        assert (isMerged == true): "should be able to merge: " + getSummaryStr();
+        if(isMerged == false){
+            logger.error("should be able to merge: " + getSummaryStr());
+            System.exit(-1);
+        }
         driver.setStatus(Utils.DRIVER);
         driverSet.add(driver);
         uncoveredDistance = rider.getUncoveredDistance();
@@ -57,7 +57,10 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
         if(getRider().getUId() == 76 && getFirstDriverCandidate().getUId() == 92){
             logger.debug("debug!");
         }
-        assert (initMerged == false): "init merged: " + this.getSummaryStr();
+        if(initMerged == true){
+            logger.error("should not be merged: " + getSummaryStr());
+            System.exit(-1);
+        }
 
         int newCoveredDistance = firstDriverCandidate.getCoveredDistance(rider);
         int newUncoveredDistance = rider.getTotalDistance() - newCoveredDistance;
@@ -193,6 +196,9 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
     }
 
     public void makeFeasible(){
+        if(rider.getUId() == 32){
+            logger.debug("debug!");
+        }
 
         int[] startVertexInfo = rider.getStartVertexInfo();
         int[] endVertexInfo = rider.getEndVertexInfo();
@@ -218,6 +224,22 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
 
         rider.fillBreaksWithTaxi(startVertexInfo, endVertexInfo);
 
+        // clear driver if it is removed during the makefeasible process
+        // update carriedlegs and carrylegs
+        HashSet<User> newDriverSet = new HashSet<>();
+        for(Leg leg: rider.getLegs()){
+            for(Leg driverLeg: leg.getLegs()){
+                if(driverLeg != leg && driverLeg.getId() != 0){
+                    newDriverSet.add(driverLeg.getUser());
+                }
+            }
+        }
+        for(User driver: driverSet){
+            if(!newDriverSet.contains(driver)){
+                driver.clear();
+            }
+        }
+        driverSet = newDriverSet;
     }
 
     public boolean hasSaving() {
@@ -237,10 +259,107 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
         rider.clear();
     }
 
-    public void registerDriverSet() {
+    public void refreshAndRegisterDriverSetAndUpdateQueue(PriorityQueue<User> userQueue,
+                                                          HashMap<User, ArrayList<UserCoverGroup>> driverGroupMap) {
+        if(rider.getUId() == 62){
+            logger.debug("debug!");
+        }
+        // update carriedlegs and carrylegs
+        for(Leg leg: rider.getLegs()){
+            for(Leg driverLeg: leg.getLegs()){
+                if(driverLeg != leg && driverLeg.getId() != 0){
+                    driverLeg.addCarryLeg(leg);
+                    leg.addCarriedLeg(driverLeg);
+                }
+            }
+        }
+
+        Stack<Leg> stack = new Stack<>();
+        HashSet<Leg> visited = new HashSet<>();
+
+        // add all the rider's legs into stack
+        for(Leg leg: rider.getLegs()){
+            stack.push(leg);
+        }
+
+        while(!stack.isEmpty()){
+            Leg curLeg = stack.pop();
+            if(visited.contains(curLeg)){
+                continue;
+            }
+            visited.add(curLeg);
+            curLeg.makeTimeConsistency();
+            if(curLeg.getUser().getStatus() == Utils.DRIVER){
+                for(Leg nextLeg: curLeg.getCarryLegs()){
+                    if(!nextLeg.isTimeConsistent()) {
+                        stack.push(nextLeg);
+                    }
+                }
+                // only driver needs to store the prev status, rider just needs to clear to be the init status
+                curLeg.storePrevStatus();
+                updateQueueByDriver(curLeg.getUser(), userQueue, driverGroupMap);
+            }
+            else if (curLeg.getUser().getStatus() == Utils.RIDER){
+                for(Leg nextLeg: curLeg.getCarriedLegs()){
+                    if(!nextLeg.isTimeConsistent()) {
+                        stack.push(nextLeg);
+                    }
+                    else{
+                        // for driver's leg, if is already consistent, store the status
+                        nextLeg.storePrevStatus();
+                    }
+                }
+            }
+            else{
+                logger.error(String.format("Update independent user's leg is invalid: {}", curLeg.getUser()));
+            }
+        }
+
+        // register driver to global driver set
         for(User driver: driverSet){
-            driver.storePrevStatus();
             ModelInstance.registeredDriverSet.add(driver);
+            // still need to update queues for all the driverset even they are consistent
+            updateQueueByDriver(driver, userQueue, driverGroupMap);
+//            driver.storePrevStatus();
+        }
+    }
+
+    private void updateQueueByDriver(User driver, PriorityQueue<User> userQueue, HashMap<User, ArrayList<UserCoverGroup>> driverGroupMap){
+        ArrayList<UserCoverGroup> userCoverGroupList = driverGroupMap.get(driver);
+        logger.debug(String.format("driver u%d covergroup list size %d", driver.getUId(), userCoverGroupList.size()));
+        for(UserCoverGroup curGroup: userCoverGroupList){
+            User rider = curGroup.getRider();
+            if(!ModelInstance.registeredFinishedRiderSet.contains(rider) && rider.getStatus() == Utils.INDEPENDENT){
+                // recompute the uncovered distance
+                int prevMinUncoveredDistance = rider.getMinUncoveredDistance();
+                PriorityQueue<UserCoverGroup> curQueue = rider.getQueue();
+
+                // update curQueue
+                logger.debug(String.format("before update pair: %s", curGroup.getSummaryStr()));
+                boolean isUpdated = curGroup.updateUncoveredDistance();
+                logger.debug(String.format("after  update pair: %s", curGroup.getSummaryStr()));
+                if(isUpdated) {
+                    logger.debug(String.format("cross update: %s", curGroup.getSummaryStr()));
+                    curQueue.remove(curGroup);
+                    if(curGroup.uncoveredDistance < rider.getTotalDistance()) {
+                        curQueue.offer(curGroup);
+                    }
+                    // update userQueue
+                    int minUncoveredDistance = rider.getMinUncoveredDistance();
+
+                    if (minUncoveredDistance < prevMinUncoveredDistance){
+                        logger.error(String.format("new < prev minuncover: %d,%d|%s", minUncoveredDistance, prevMinUncoveredDistance, this.getSummaryStr()));
+                        System.exit(-1);
+                    }
+
+                    if(minUncoveredDistance > prevMinUncoveredDistance){
+                        userQueue.remove(rider);
+                        if(minUncoveredDistance < rider.getTotalDistance()) {
+                            userQueue.offer(rider);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -248,9 +367,9 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
         if(!driverSet.isEmpty()){
             for(User driver: driverSet){
                 ArrayList<UserCoverGroup> userCoverGroupList = driverGroupMap.get(driver);
-                 if(driver.getUId() == 39){
-                    logger.debug(String.format("debug u%d", driver.getUId()));
-                }
+                 if(driver.getUId() == 93){
+                    logger.debug("debug!");
+                 }
                 logger.debug(String.format("driver u%d covergroup list size %d", driver.getUId(), userCoverGroupList.size()));
                 for(UserCoverGroup curGroup: userCoverGroupList){
                     User rider = curGroup.getRider();

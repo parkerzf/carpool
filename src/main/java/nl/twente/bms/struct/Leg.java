@@ -7,10 +7,14 @@ import grph.path.ArrayPath;
 import grph.path.PathNotModifiableException;
 import nl.twente.bms.model.ModelInstance;
 import nl.twente.bms.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import toools.set.IntHashSet;
 import toools.set.IntSet;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.stream.IntStream;
 
 /**
@@ -18,13 +22,17 @@ import java.util.stream.IntStream;
  * @since ${version}
  */
 public class Leg extends AbstractPath{
+    private static final Logger logger = LoggerFactory.getLogger(Leg.class);
     private int id = Utils.genNextLegId();
     private User initUser;
     private int[] vertices;
     private int[] lengths;
     private int length;
     private int size;
+    // if leg[i] == someLeg, means that edge from vertex[i] to vertex[i+1] is carried by someLeg.
     private Leg[] legs;
+    private HashSet<Leg> carryLegs;
+    private HashSet<Leg> carriedLegs;
 
     private int initEarliestDepartureTime;
     private int initLatestArrivalTime;
@@ -48,24 +56,71 @@ public class Leg extends AbstractPath{
             this.size = vertices.length;
             initUser = user;
             legs = new Leg[size];
+            carryLegs = new HashSet<>();
+            carriedLegs = new HashSet<>();
             Arrays.fill(legs, this);
             lengths = new int[size-1];
             prevCapacities = new int[size];
             Arrays.fill(prevCapacities, 1);
 
-            setMinTime(0, earliestDepartureTime);
+            setMinTime(0, this.initEarliestDepartureTime);
             for(int i = 0; i < getSize() - 1; i++){
                 lengths[i] = graph.getShortestDistance(vertices[i], vertices[i+1]);
                 length += lengths[i];
-                setMinTime(i+1, earliestDepartureTime + length / Utils.SPEED_PER_MIN);
+                setMinTime(i+1, this.initEarliestDepartureTime + length / Utils.SPEED_PER_MIN);
             }
-            int diffMaxMin = latestArrivalTime - getMinTime(size - 1);
+            int diffMaxMin = this.initLatestArrivalTime - getMinTime(size - 1);
 
             for(int i = 0; i < getSize(); i++){
                 vertexIdxMap.put(vertices[i], i);
                 setMaxTime(i, getMinTime(i) + diffMaxMin);
                 setInitUsedCapacity(i, 1);
             }
+        }
+    }
+
+    public Leg[] getLegs(){
+        return legs;
+    }
+
+    public boolean isTimeConsistent(){
+        int timeInterval = getMaxTime(0) - getMinTime(0);
+        for(int i = 0; i < getSize(); i++){
+            if(timeInterval != getMaxTime(i) - getMinTime(i)) return false;
+        }
+        return true;
+    }
+
+    public void makeTimeConsistency(){
+        logger.debug(String.format("make consist: %s", getSummaryStr()));
+        // get the most strict time interval
+        int minTimeInterval = Integer.MAX_VALUE;
+        int minTimeVertexIdx = -1;
+        int minTimeVertexMin = -1;
+        int minTimeVertexMax = -1;
+        // make the whole leg time consistent
+        for(int i = 0; i < getSize(); i++){
+            int curTimeInterval = getMaxTime(i) - getMinTime(i);
+            if(curTimeInterval < minTimeInterval){
+                minTimeInterval = curTimeInterval;
+                minTimeVertexIdx = i;
+                minTimeVertexMin = getMinTime(i);
+                minTimeVertexMax = getMaxTime(i);
+            }
+        }
+
+        int prevLengthSum = 0;
+        for(int i = minTimeVertexIdx - 1; i >= 0; i--){
+            prevLengthSum += lengths[i];
+            legs[i].setMinTimeAtVertex(getVertexAt(i), minTimeVertexMin - prevLengthSum / Utils.SPEED_PER_MIN);
+            legs[i].setMaxTimeAtVertex(getVertexAt(i), minTimeVertexMax - prevLengthSum / Utils.SPEED_PER_MIN);
+        }
+
+        prevLengthSum = 0;
+        for(int i = minTimeVertexIdx + 1; i < getSize(); i++){
+            prevLengthSum += lengths[i-1];
+            legs[i].setMinTimeAtVertex(getVertexAt(i), minTimeVertexMin + prevLengthSum / Utils.SPEED_PER_MIN);
+            legs[i].setMaxTimeAtVertex(getVertexAt(i), minTimeVertexMax + prevLengthSum / Utils.SPEED_PER_MIN);
         }
     }
 
@@ -164,6 +219,12 @@ public class Leg extends AbstractPath{
         }
     }
 
+    public String getSummaryStr() {
+        StringBuilder b = new StringBuilder();
+        b.append(String.format("l%d |cost:%.1f|%s", id, getCost(true), getUser().getSummaryStr()));
+        return b.toString();
+    }
+
 
     /**
      * Check how much cost can be saved by merging with the other leg
@@ -173,7 +234,7 @@ public class Leg extends AbstractPath{
     public double getOverlappedCost(Leg someLeg){
         double overlappedCost = 0;
         //check the global time compatibility
-        if(Utils.isOverlapped(this, someLeg)){
+        if(Utils.isTimeOverlapped(this, someLeg)){
             //find meeting points with time constraint and capacity constraint
             if(this.getLength() > someLeg.getLength()){
                 overlappedCost = computeCoveredDistance(someLeg) * Utils.DRIVING_EUR_PER_KM;
@@ -190,7 +251,7 @@ public class Leg extends AbstractPath{
     public int getCoveredDistance(Leg someLeg) {
         int coveredDistance = 0;
         //check the global time compatibility
-        if(Utils.isOverlapped(this, someLeg)){
+        if(Utils.isTimeOverlapped(this, someLeg)){
             //find meeting points with time constraint and capacity constraint
             coveredDistance = computeCoveredDistance(someLeg);
         }
@@ -256,7 +317,7 @@ public class Leg extends AbstractPath{
 
     public boolean merge(Leg someLeg) {
         boolean isMerged = false;
-        if(Utils.isOverlapped(this, someLeg)){
+        if(Utils.isTimeOverlapped(this, someLeg)){
             isMerged = carryPath(someLeg);
         }
         return isMerged;
@@ -267,6 +328,8 @@ public class Leg extends AbstractPath{
         // the combining of two legs is feasible, then find the meeting point and
         // update the parking point if possible (the second parameter is true)
         int meetingPoint = findMeetingPoint(someLeg);
+        // this should be larger than 0 because computeCoveredDistance > 0
+        assert (meetingPoint != -1) : meetingPoint;
 
         int meetingIdx = indexOfVertex(meetingPoint);
         int somePathMeetingIdx = someLeg.indexOfVertex(meetingPoint);
@@ -322,12 +385,19 @@ public class Leg extends AbstractPath{
                 someLeg.increaseUsedCapacityAtVertex(j-1);
             }
             else{
-
                 break;
             }
         }
+//        if(someLeg.id == 9){
+//            logger.debug("debug!");
+//        }
 
-//        someLeg.legs[someLeg.getSize() - 2] = someLeg.legs[someLeg.getSize() - 1];
+        // special case, someLege reaches the end, just set the end vertex of someLeg to be legs[i]
+        if(j == someLeg.getSize()){
+            if(getVertexAt(i-1) == someLeg.getVertexAt(j-1) && hasCapacity(i-1)){
+                someLeg.legs[j-1] = legs[i-1];
+            }
+        }
 
         return true;
     }
@@ -345,7 +415,7 @@ public class Leg extends AbstractPath{
             int idx;
             if ((idx = indexOfVertex(v)) != -1
                 && hasCapacity(idx)
-                && Utils.isOverlapped(getMinTime(idx), getMaxTime(idx), someLeg.getMinTime(i), someLeg.getMaxTime(i))
+                && Utils.isTimeOverlapped(getMinTime(idx), getMaxTime(idx), someLeg.getMinTime(i), someLeg.getMaxTime(i))
                 ) return v;
         }
         return -1;
@@ -371,15 +441,15 @@ public class Leg extends AbstractPath{
         ModelInstance.legVertexCapacityTable.put(id, v, capacity);
     }
 
+    private int getUsedCapacityAtVertex(int v) {
+        return ModelInstance.legVertexCapacityTable.get(id, v);
+    }
+
     public int getUsedCapacity(int idx){
         if(legs[idx].id == 0){
             return 1;
         }
         return legs[idx].getUsedCapacityAtVertex(vertices[idx]);
-    }
-
-    private int getUsedCapacityAtVertex(int v) {
-        return ModelInstance.legVertexCapacityTable.get(id, v);
     }
 
     public void setMinTime(int idx, int minTime){
@@ -524,7 +594,7 @@ public class Leg extends AbstractPath{
 
 
     public int getTimeDeviation() {
-        return initLatestArrivalTime - getMaxTime(getSize()-1);
+        return initLatestArrivalTime - getLatestArrivalTime();
     }
 
 
@@ -561,5 +631,25 @@ public class Leg extends AbstractPath{
             }
         }
         return pickupTimes;
+    }
+
+    public void addCarryLeg(Leg leg) {
+        carryLegs.add(leg);
+    }
+
+    public HashSet<Leg> getCarryLegs() {
+        return carryLegs;
+    }
+
+    public void addCarriedLeg(Leg leg) {
+        carriedLegs.add(leg);
+    }
+
+    public HashSet<Leg> getCarriedLegs() {
+        return carriedLegs;
+    }
+
+    public int getId() {
+        return id;
     }
 }

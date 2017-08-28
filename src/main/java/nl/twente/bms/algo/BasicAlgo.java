@@ -76,7 +76,7 @@ public class BasicAlgo {
                 firstGroup.makeFeasible();
                 if (firstGroup.isFeasible()) {
                     userGroups.add(firstGroup);
-                    firstGroup.registerDriverSet();
+//                    firstGroup.refreshAndRegisterDriverSetAndUpdateQueue();
                 }
                 else{
                     firstGroup.clear();

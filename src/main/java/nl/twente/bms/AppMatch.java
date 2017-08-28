@@ -91,7 +91,8 @@ public class AppMatch
 
         logger.debug("num cars: " + ModelStats.numCars);
 
-        List<String> statList = Arrays.asList(Utils.getFileName(userPath),
+        List<String> statList = Arrays.asList(
+                Utils.getFileName(userPath),
                 String.valueOf(ModelStats.initCost),
                 String.valueOf(ModelStats.initCostCommuter),
                 String.valueOf(ModelStats.initCostBusiness),

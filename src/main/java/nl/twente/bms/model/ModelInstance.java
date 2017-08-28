@@ -31,7 +31,7 @@ public class ModelInstance {
 
     public static void initInstance(int type, String graphPath, String userPath){
         if(type == 0) initTestInstance();
-        else if(type ==1) initParkingPointInstance();
+        else if(type == 1) initParkingPointInstance();
         else initRealInstance(graphPath, userPath);
     }
 

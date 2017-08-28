@@ -4,7 +4,6 @@ import nl.twente.bms.struct.Leg;
 import nl.twente.bms.struct.User;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -34,7 +33,7 @@ public class Utils {
         return nextLegId++;
     }
 
-    public static boolean isOverlapped(int minX, int maxX, int minY, int maxY){
+    public static boolean isTimeOverlapped(int minX, int maxX, int minY, int maxY){
 
         if(minX >= minY && minX <= maxY) return true;
 
@@ -43,8 +42,8 @@ public class Utils {
         return false;
     }
 
-    public static boolean isOverlapped(Leg legA, Leg legB) {
-        return isOverlapped(legA.getEarliestDepartureTime(), legA.getLatestArrivalTime(),
+    public static boolean isTimeOverlapped(Leg legA, Leg legB) {
+        return isTimeOverlapped(legA.getEarliestDepartureTime(), legA.getLatestArrivalTime(),
                 legB.getEarliestDepartureTime(), legB.getLatestArrivalTime());
     }
 

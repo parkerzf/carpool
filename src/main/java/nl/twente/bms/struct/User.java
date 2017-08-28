@@ -2,6 +2,8 @@ package nl.twente.bms.struct;
 
 import nl.twente.bms.model.ModelInstance;
 import nl.twente.bms.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import toools.set.IntHashSet;
 import toools.set.IntSet;
 
@@ -16,7 +18,7 @@ import java.util.PriorityQueue;
  */
 
 public class User implements Comparable<User> {
-
+    private static final Logger logger = LoggerFactory.getLogger(User.class);
     private int uId;
     private int status = Utils.INDEPENDENT;
     private int totalDistance = 0;
@@ -55,7 +57,6 @@ public class User implements Comparable<User> {
         }
     }
 
-    //TODO update all the related legs time contraints
     public boolean merge(User user) {
         int i = 0;
         int j = legs.size() - 1;
@@ -138,11 +139,6 @@ public class User implements Comparable<User> {
     }
 
     public double getOverlappedCost(User user) {
-//        List<Leg> otherLegs = user.getLegs();
-//        double cost = 0;
-//        for(int i = 0; i< Math.min(legs.size(), otherLegs.size()); i++)
-//            cost += this.legAt(i).getOverlappedCost(user.legAt(i));
-
         int i = 0;
         int j = legs.size() - 1;
         int p = 0;
@@ -488,6 +484,9 @@ public class User implements Comparable<User> {
     }
 
     public void clear() {
+        if(getUId() == 25){
+            logger.debug("debug!");
+        }
         for(Leg leg: legs){
             leg.clear();
         }
@@ -713,9 +712,11 @@ public class User implements Comparable<User> {
         int newStartVertexIdx = -1;
 
         Leg leg = legAt(startLegIdx);
-        for(int i = startVertexIdx + 1; i < leg.getSize(); i++){
+//        for(int i = startVertexIdx + 1; i < leg.getSize(); i++){
+        for(int i = startVertexIdx; i < leg.getSize(); i++){
             if(leg.getVertexAt(i) != vertexToMatch){
-                leg.resetLeg(i-1);
+//                leg.resetLeg(i-1);
+                leg.resetLeg(i);
             }
             else{
                 newStartLegIdx = startLegIdx;
@@ -730,9 +731,11 @@ public class User implements Comparable<User> {
                     break;
                 }
                 leg = legAt(i);
-                for(int j = 1; j < leg.getSize(); j++){
+//                for(int j = 1; j < leg.getSize(); j++){
+                for(int j = 0; j < leg.getSize(); j++){
                     if(leg.getVertexAt(j) != vertexToMatch){
-                        leg.resetLeg(j-1);
+//                        leg.resetLeg(j-1);
+                        leg.resetLeg(j);
                     }
                     else{
                         newStartLegIdx = i;
@@ -759,9 +762,11 @@ public class User implements Comparable<User> {
         int newEndVertexIdx = -1;
 
         Leg leg = legAt(endLegIdx);
-        for(int i = endVertexIdx -1; i >= 0; i--){
+//        for(int i = endVertexIdx -1; i >= 0; i--){
+        for(int i = endVertexIdx; i >= 0; i--){
             if(leg.getVertexAt(i) != vertexToMatch){
-                leg.resetLeg(i);
+//                leg.resetLeg(i);
+                if(i>0) leg.resetLeg(i-1);
             }
             else{
                 newEndLegIdx = endLegIdx;
@@ -776,9 +781,11 @@ public class User implements Comparable<User> {
                     break;
                 }
                 leg = legAt(i);
-                for(int j = leg.getSize() - 2; j >= 0; j--){
+//                for(int j = leg.getSize() - 2; j >= 0; j--){
+                for(int j = leg.getSize() - 1; j >= 0; j--){
                     if(leg.getVertexAt(j) != vertexToMatch){
-                        leg.resetLeg(j);
+//                        leg.resetLeg(j);
+                        if(j>0) leg.resetLeg(j-1);
                     }
                     else{
                         newEndLegIdx = i;

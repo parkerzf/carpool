@@ -116,8 +116,8 @@ public class MatchingSeqAlgo {
                 if (firstGroup.hasSaving()) {
                     logger.debug(String.format("Final: %s", firstGroup.getSummaryStr()));
                     userGroups.add(firstGroup);
-                    firstGroup.registerDriverSet();
-                    firstGroup.updateQueue(userQueue, driverGroupMap);
+                    firstGroup.refreshAndRegisterDriverSetAndUpdateQueue(userQueue, driverGroupMap);
+//                    firstGroup.updateQueue(userQueue, driverGroupMap);
 
                 }
                 else {
