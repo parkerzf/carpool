@@ -13,51 +13,33 @@ import java.util.*;
  * @author zhaofeng
  * @since ${version}
  */
-public class MatchingSeqAlgo {
-    private static final Logger logger = LoggerFactory.getLogger(MatchingSeqAlgo.class);
+public class MatchingSeqStaticAlgo {
+    private static final Logger logger = LoggerFactory.getLogger(MatchingSeqStaticAlgo.class);
 
     public static void run(List<User> users) {
-        // manage the users in non descending order of minimum uncovered distance in the priority queue
-        PriorityQueue<User> userQueue = new PriorityQueue<>();
-        // manage the user feasible pair in a hashmap
-        HashMap<User, ArrayList<UserCoverGroup>> driverGroupMap = new HashMap<>();
+        // manage the users in non descending order of minimum uncovered distance in the sorted list
+        List<User> userSortedList = new ArrayList<>();
 
         for (int i = 0; i < users.size(); i++) {
+            userSortedList.add(users.get(i));
             for (int j = 0; j < users.size(); j++) {
                 if(i == j) continue;
                 User userA = users.get(i);
                 User userB = users.get(j);
                 UserCoverGroup userCoverGroup = new UserCoverGroup(userA, userB);
                 if(userCoverGroup.isCoveredBeforeInitMerge()){
-                    ArrayList<UserCoverGroup> userCoverGroupList = driverGroupMap.get(userB);
-                    if( userCoverGroupList == null){
-                        userCoverGroupList = new ArrayList<>();
-                    }
-                    userCoverGroupList.add(userCoverGroup);
-                    driverGroupMap.put(userB, userCoverGroupList);
-
                     PriorityQueue<UserCoverGroup> queue = userA.getQueue();
                     queue.offer(userCoverGroup);
                 }
             }
         }
 
+        Collections.sort(userSortedList);
+        logger.debug("Sorted User list size: {}", userSortedList.size());
+
         for (int i = 0; i < users.size(); i++) {
-            if(users.get(i).getQueue().size() > 0){
-                userQueue.offer(users.get(i));
-            }
-            else{
-                logger.debug("u{} is not enqueued because no user cover it", users.get(i).getUId());
-            }
-        }
-
-
-
-        logger.debug("Driver Group Map size: {}", driverGroupMap.size());
-        logger.debug("User Queue size: {}", userQueue.size());
-
-        for(User user: users) {
-            logger.debug(user.getSummaryStr());
+            logger.debug("User {}'s Queue size: {}", userSortedList.get(i).getUId(), userSortedList.get(i).getQueue().size());
+            logger.debug(userSortedList.get(i).getSummaryStr());
         }
 
 
@@ -66,11 +48,8 @@ public class MatchingSeqAlgo {
 
         User curUser;
         PriorityQueue<UserCoverGroup> curQueue;
-        while((curUser = userQueue.poll()) != null){
-
-            if(curUser.getUId() == 41){
-                logger.debug("debug!");
-            }
+        for (int i = 0; i < users.size(); i++) {
+            curUser = userSortedList.get(i);
             if(curUser.getStatus() == Utils.DRIVER) continue;
             curQueue = curUser.getQueue();
 
@@ -116,14 +95,9 @@ public class MatchingSeqAlgo {
                 if (firstGroup.hasSaving()) {
                     logger.debug(String.format("Final: %s", firstGroup.getSummaryStr()));
                     userGroups.add(firstGroup);
-                    firstGroup.refreshAndRegisterDriverSetAndUpdateQueue(userQueue, driverGroupMap);
-                    firstGroup.updateQueue(userQueue, driverGroupMap);
-
+                    firstGroup.refreshAndRegisterDriverSet();
                 }
                 else {
-                    if(firstGroup.getRider().getUId()==81){
-                        logger.debug("debug!");
-                    }
                     firstGroup.clear();
                     logger.debug(String.format("Clear: %s", firstGroup.getSummaryStr()));
                 }

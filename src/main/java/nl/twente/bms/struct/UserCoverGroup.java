@@ -259,6 +259,66 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
         rider.clear();
     }
 
+
+    // for the static matching algo
+    public void refreshAndRegisterDriverSet() {
+        // update carriedlegs and carrylegs
+        for(Leg leg: rider.getLegs()){
+            for(Leg driverLeg: leg.getLegs()){
+                if(driverLeg != leg && driverLeg.getId() != 0){
+                    driverLeg.addCarryLeg(leg);
+                    leg.addCarriedLeg(driverLeg);
+                }
+            }
+        }
+
+        Stack<Leg> stack = new Stack<>();
+        HashSet<Leg> visited = new HashSet<>();
+
+        // add all the rider's legs into stack
+        for(Leg leg: rider.getLegs()){
+            stack.push(leg);
+        }
+
+        while(!stack.isEmpty()){
+            Leg curLeg = stack.pop();
+            if(visited.contains(curLeg)){
+                continue;
+            }
+            visited.add(curLeg);
+            curLeg.makeTimeConsistency();
+            if(curLeg.getUser().getStatus() == Utils.DRIVER){
+                for(Leg nextLeg: curLeg.getCarryLegs()){
+                    if(!nextLeg.isTimeConsistent()) {
+                        stack.push(nextLeg);
+                    }
+                }
+                // only driver needs to store the prev status, rider just needs to clear to be the init status
+                curLeg.storePrevStatus();
+            }
+            else if (curLeg.getUser().getStatus() == Utils.RIDER){
+                for(Leg nextLeg: curLeg.getCarriedLegs()){
+                    if(!nextLeg.isTimeConsistent()) {
+                        stack.push(nextLeg);
+                    }
+                    else{
+                        // for driver's leg, if is already consistent, store the status
+                        nextLeg.storePrevStatus();
+                    }
+                }
+            }
+            else{
+                logger.error(String.format("Update independent user's leg is invalid: {}", curLeg.getUser()));
+            }
+        }
+
+        // register driver to global driver set
+        for(User driver: driverSet){
+            ModelInstance.registeredDriverSet.add(driver);
+        }
+    }
+
+    // for the dynamic matching algo
     public void refreshAndRegisterDriverSetAndUpdateQueue(PriorityQueue<User> userQueue,
                                                           HashMap<User, ArrayList<UserCoverGroup>> driverGroupMap) {
         if(rider.getUId() == 62){
