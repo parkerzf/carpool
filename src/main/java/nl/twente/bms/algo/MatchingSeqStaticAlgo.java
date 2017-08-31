@@ -55,6 +55,7 @@ public class MatchingSeqStaticAlgo {
 
             UserCoverGroup firstGroup;
             while((firstGroup = curQueue.poll()) != null){
+                firstGroup.updateUncoveredDistance();
                 if(firstGroup.isFeasibleBeforeInitMerge() && firstGroup.isCoveredBeforeInitMerge()){
                     break;
                 }

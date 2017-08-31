@@ -117,8 +117,6 @@ public class MatchingSeqAlgo {
                     logger.debug(String.format("Final: %s", firstGroup.getSummaryStr()));
                     userGroups.add(firstGroup);
                     firstGroup.refreshAndRegisterDriverSetAndUpdateQueue(userQueue, driverGroupMap);
-                    firstGroup.updateQueue(userQueue, driverGroupMap);
-
                 }
                 else {
                     if(firstGroup.getRider().getUId()==81){

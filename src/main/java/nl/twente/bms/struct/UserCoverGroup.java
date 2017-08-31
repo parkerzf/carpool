@@ -31,10 +31,6 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
 
     public void initMerge() {
         addDriver(firstDriverCandidate);
-//        boolean isMerged = firstDriverCandidate.merge(rider);
-//        assert (isMerged == true): "should be able to merge: " + getSummaryStr();
-//        firstDriverCandidate.setStatus(Utils.DRIVER);
-//        driverSet.add(firstDriverCandidate);
         rider.setStatus(Utils.RIDER);
         initMerged = true;
     }
@@ -70,24 +66,6 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
             System.exit(-1);
         }
 
-        if(newUncoveredDistance > uncoveredDistance){
-            this.uncoveredDistance = newUncoveredDistance;
-            return true;
-        }
-        // no updates means that it is up to date so that it is ready to be added to the main group
-        return false;
-    }
-
-    public boolean updateUncoveredDistance2(){
-        assert (initMerged == false): "init merged: " + this.getSummaryStr();
-
-        int newCoveredDistance = firstDriverCandidate.getCoveredDistance(rider);
-        int newUncoveredDistance = rider.getTotalDistance() - newCoveredDistance;
-
-        if (newUncoveredDistance < uncoveredDistance){
-            logger.error(String.format("new < prev uncover: %d,%d|rider: u%d", newUncoveredDistance, uncoveredDistance, rider.getUId()));
-            System.exit(-1);
-        }
         if(newUncoveredDistance > uncoveredDistance){
             this.uncoveredDistance = newUncoveredDistance;
             return true;
@@ -420,55 +398,6 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
                     }
                 }
             }
-        }
-    }
-
-    public void updateQueue(PriorityQueue<User> userQueue, HashMap<User, ArrayList<UserCoverGroup>> driverGroupMap) {
-        if(!driverSet.isEmpty()){
-            for(User driver: driverSet){
-                ArrayList<UserCoverGroup> userCoverGroupList = driverGroupMap.get(driver);
-                 if(driver.getUId() == 93){
-                    logger.debug("debug!");
-                 }
-                logger.debug(String.format("driver u%d covergroup list size %d", driver.getUId(), userCoverGroupList.size()));
-                for(UserCoverGroup curGroup: userCoverGroupList){
-                    User rider = curGroup.getRider();
-                    if(!ModelInstance.registeredFinishedRiderSet.contains(rider) && rider.getStatus() == Utils.INDEPENDENT){
-                        // recompute the uncovered distance
-                        int prevMinUncoveredDistance = rider.getMinUncoveredDistance();
-                        PriorityQueue<UserCoverGroup> curQueue = rider.getQueue();
-
-                        // update curQueue
-                        logger.debug(String.format("before update pair: %s", curGroup.getSummaryStr()));
-                        boolean isUpdated = curGroup.updateUncoveredDistance();
-                        logger.debug(String.format("after  update pair: %s", curGroup.getSummaryStr()));
-                        if(isUpdated) {
-                            logger.debug(String.format("cross update: %s", curGroup.getSummaryStr()));
-                            curQueue.remove(curGroup);
-                            if(curGroup.uncoveredDistance < rider.getTotalDistance()) {
-                                curQueue.offer(curGroup);
-                            }
-                            // update userQueue
-                            int minUncoveredDistance = rider.getMinUncoveredDistance();
-
-                            if (minUncoveredDistance < prevMinUncoveredDistance){
-                                logger.error(String.format("new < prev minuncover: %d,%d|%s", minUncoveredDistance, prevMinUncoveredDistance, this.getSummaryStr()));
-                                System.exit(-1);
-                            }
-
-                            if(minUncoveredDistance > prevMinUncoveredDistance){
-                                userQueue.remove(rider);
-                                if(minUncoveredDistance < rider.getTotalDistance()) {
-                                    userQueue.offer(rider);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        else{
-            logger.error("The cover group is not merged yet!");
         }
     }
 
