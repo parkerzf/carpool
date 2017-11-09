@@ -173,31 +173,51 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
         return true;
     }
 
-    public void makeFeasible(){
-        if(rider.getUId() == 32){
-            logger.debug("debug!");
-        }
+    public void makeFeasibleTaxi(){
 
         int[] startVertexInfo = rider.getStartVertexInfo();
         int[] endVertexInfo = rider.getEndVertexInfo();
 
+        rider.fillBreaksWithTaxi(startVertexInfo, endVertexInfo);
 
-        if(rider.isCandidateParkingPiont(startVertexInfo) && rider.isCandidateParkingPiont(endVertexInfo)){
-            if(rider.getVertexId(startVertexInfo) != rider.getVertexId(endVertexInfo)){
-                int distToStart = rider.distanceToStart(startVertexInfo);
-                int distToEnd = rider.distanceToEnd(endVertexInfo);
-
-                if(distToStart < distToEnd){
-                    startVertexInfo = rider.resetStart(startVertexInfo, endVertexInfo);
-                }
-                else{
-                    endVertexInfo = rider.resetEnd(endVertexInfo, startVertexInfo);
+        // clear driver if it is removed during the makefeasible process
+        // update carriedlegs and carrylegs
+        HashSet<User> newDriverSet = new HashSet<>();
+        for(Leg leg: rider.getLegs()){
+            for(Leg driverLeg: leg.getLegs()){
+                if(driverLeg != leg && driverLeg.getId() != 0){
+                    newDriverSet.add(driverLeg.getUser());
                 }
             }
         }
-        else{
-            startVertexInfo = rider.findAndResetToMostConservativeStart(startVertexInfo);
-            endVertexInfo = rider.findAndResetToMostConservativeEnd(endVertexInfo);
+        for(User driver: driverSet){
+            if(!newDriverSet.contains(driver)){
+                driver.clear();
+            }
+        }
+        driverSet = newDriverSet;
+    }
+
+    public void makeFeasible(boolean isTaxiOnly){
+        int[] startVertexInfo = rider.getStartVertexInfo();
+        int[] endVertexInfo = rider.getEndVertexInfo();
+
+        if(!isTaxiOnly) {
+            if (rider.isCandidateParkingPiont(startVertexInfo) && rider.isCandidateParkingPiont(endVertexInfo)) {
+                if (rider.getVertexId(startVertexInfo) != rider.getVertexId(endVertexInfo)) {
+                    int distToStart = rider.distanceToStart(startVertexInfo);
+                    int distToEnd = rider.distanceToEnd(endVertexInfo);
+
+                    if (distToStart < distToEnd) {
+                        startVertexInfo = rider.resetStart(startVertexInfo, endVertexInfo);
+                    } else {
+                        endVertexInfo = rider.resetEnd(endVertexInfo, startVertexInfo);
+                    }
+                }
+            } else {
+                startVertexInfo = rider.findAndResetToMostConservativeStart(startVertexInfo);
+                endVertexInfo = rider.findAndResetToMostConservativeEnd(endVertexInfo);
+            }
         }
 
         rider.fillBreaksWithTaxi(startVertexInfo, endVertexInfo);

@@ -29,6 +29,21 @@ public class ModelInstance {
     public static HashSet<User> registeredDriverSet = new HashSet<>();
     public static HashSet<User> registeredFinishedRiderSet = new HashSet<>();
 
+
+    public static void clear(){
+        StationGraph graph = new StationGraph();
+//        User taxiUser = new User();
+//        taxiLeg = new Leg(graph, taxiUser, -1, -1, -1, -1);
+
+        users = new ArrayList<>();
+        legVertexCapacityTable = HashBasedTable.create();
+        legVertexMinTimeTable = HashBasedTable.create();
+        legVertexMaxTimeTable = HashBasedTable.create();
+
+        registeredDriverSet = new HashSet<>();
+        registeredFinishedRiderSet = new HashSet<>();
+    }
+
     public static void initInstance(int type, String graphPath, String userPath){
         if(type == 0) initTestInstance();
         else if(type == 1) initParkingPointInstance();

@@ -3,7 +3,7 @@ package nl.twente.bms;
 
 import grph.io.GraphBuildException;
 import grph.io.ParseException;
-import nl.twente.bms.algo.BasicAlgo;
+import nl.twente.bms.algo.MatchingSeqStaticAlgo;
 import nl.twente.bms.model.ModelInstance;
 import nl.twente.bms.model.ModelStats;
 import nl.twente.bms.utils.ExcelWriter;
@@ -16,30 +16,52 @@ import java.util.Arrays;
 import java.util.List;
 
 
-public class AppBasic
+public class AppRandomMatch
 {
-    private static final Logger logger = LoggerFactory.getLogger(AppBasic.class);
+    private static final Logger logger = LoggerFactory.getLogger(AppRandomMatch.class);
 
     public static void main( String[] args ) throws IOException, ParseException, GraphBuildException {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
 
         String graphPath = args[0];
         String userPath = args[1];
-        if(args.length > 2){
-            Utils.TAXI_EUR_PER_KM = Double.parseDouble(args[2]);
+        int iterations = 0;
+        if(args.length == 3){
+            iterations = Integer.parseInt(args[2]);
         }
-        ModelInstance.initInstance(2, graphPath, userPath);
+        else if(args.length == 4){
+            Utils.TAXI_EUR_PER_KM = Double.parseDouble(args[2]);
+            iterations = Integer.parseInt(args[3]);
+        }
 
-        ModelStats.computeInitCost(ModelInstance.users);
+        double bestCost = Double.MAX_VALUE;
+        double bestTaxiCost = Double.MAX_VALUE;
+        int bestCoveredDistance = Integer.MAX_VALUE;
 
         long start = System.currentTimeMillis();
-        BasicAlgo.run(ModelInstance.users, false);
+        for(int i = 0; i < iterations; i++){
+            ModelStats.clear();
+            ModelInstance.clear();
+            ModelInstance.initInstance(2, graphPath, userPath);
+            ModelStats.computeInitCost(ModelInstance.users);
+            MatchingSeqStaticAlgo.run(ModelInstance.users, false, true);
+            ModelStats.computeStats(ModelInstance.users);
+
+            if(ModelStats.totalCost < bestCost){
+                bestCost = ModelStats.totalCost;
+                bestTaxiCost = ModelStats.taxiCostTotal;
+                bestCoveredDistance = ModelStats.distanceSavingTotal;
+
+            }
+        }
         long end = System.currentTimeMillis();
         ModelStats.runTime = (end - start) / 1000 + Math.round(((end - start) % 1000)/10.0)/100.0;
+        ModelStats.totalCost = bestCost;
+        ModelStats.taxiCostTotal = bestTaxiCost;
+        ModelStats.distanceSavingTotal = bestCoveredDistance;
 
-        ModelStats.computeStats(ModelInstance.users);
         String excelFilePath = userPath.substring(0, userPath.length() - 4) + ".xlsm";
-        ExcelWriter.writeOutput(excelFilePath, AppBasic.class.getName(), 1);
+        ExcelWriter.writeOutput(excelFilePath, AppRandomMatch.class.getName(), iterations);
 
         logger.debug("*******************************************************");
         logger.debug("init total cost: " + ModelStats.initCost);
@@ -94,12 +116,13 @@ public class AppBasic
 
         logger.debug("num cars: " + ModelStats.numCars);
 
-        List<String> statList = Arrays.asList(Utils.getFileName(userPath),
+        List<String> statList = Arrays.asList(
+                Utils.getFileName(userPath),
                 String.valueOf(ModelStats.initCost),
                 String.valueOf(ModelStats.initCostCommuter),
                 String.valueOf(ModelStats.initCostBusiness),
                 String.valueOf(ModelStats.totalCost),
-                String.valueOf(ModelStats.totalCostCommuter),
+                String.valueOf(iterations),
                 String.valueOf(ModelStats.totalCostBusiness),
                 String.valueOf(ModelStats.costSavingTotal), String.valueOf(ModelStats.costSavingCommuter),
                 String.valueOf(ModelStats.costSavingBusiness),String.valueOf(ModelStats.taxiCostTotal),

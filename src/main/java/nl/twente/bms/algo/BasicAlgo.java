@@ -1,7 +1,9 @@
 package nl.twente.bms.algo;
 
+import nl.twente.bms.model.ModelInstance;
 import nl.twente.bms.struct.User;
 import nl.twente.bms.struct.UserCoverGroup;
+import nl.twente.bms.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,82 +16,104 @@ import java.util.*;
 public class BasicAlgo {
     private static final Logger logger = LoggerFactory.getLogger(BasicAlgo.class);
 
-    public static void run(List<User> users) {
-        // Add a hash table between rider and the related group
-
-        HashMap<User, ArrayList<UserCoverGroup>> userGroupListMap = new HashMap();
-        for(int i = 0; i < users.size(); i++){
-            userGroupListMap.put(users.get(i), new ArrayList<>());
-        }
-
-        List<User> sortedUserList = new ArrayList<>();
+    public static void run(List<User> users, boolean isTaxiOnly) {
+        // manage the users in non descending order of minimum uncovered distance in the sorted list
+        List<User> userList = new ArrayList<>();
 
         for (int i = 0; i < users.size(); i++) {
-            sortedUserList.add(users.get(i));
+            userList.add(users.get(i));
             for (int j = 0; j < users.size(); j++) {
                 if(i == j) continue;
-                UserCoverGroup userCoverGroup = new UserCoverGroup(users.get(i), users.get(j));
-                if(userCoverGroup.isFeasibleBeforeInitMerge()){
-                    ArrayList<UserCoverGroup> list = userGroupListMap.get(users.get(i));
-                    list.add(userCoverGroup);
+                User userA = users.get(i);
+                User userB = users.get(j);
+                UserCoverGroup userCoverGroup = new UserCoverGroup(userA, userB);
+                if(userCoverGroup.isCoveredBeforeInitMerge()){
+                    PriorityQueue<UserCoverGroup> queue = userA.getQueue();
+                    queue.offer(userCoverGroup);
                 }
             }
         }
 
-//        Collections.sort(sortedUserList);
+        logger.debug("User list size: {}", userList.size());
 
-        logger.debug("Sorted User list size: {}", sortedUserList.size());
+        for (int i = 0; i < users.size(); i++) {
+            logger.debug("User {}'s Queue size: {}", userList.get(i).getUId(), userList.get(i).getQueue().size());
+            logger.debug(userList.get(i).getSummaryStr());
+        }
 
-//        for (int i = 0; i < users.size(); i++) {
-//            logger.debug("User {}'s List size: {}", sortedUserList.get(i).getUId(), userGroupListMap.get(sortedUserList.get(i)).size());
-//            logger.debug(sortedUserList.get(i).toString());
-//        }
 
         // sequential extension
         List<UserCoverGroup> userGroups = new ArrayList<>();
-        ArrayList<UserCoverGroup> curList;
 
+        User curUser;
+        PriorityQueue<UserCoverGroup> curQueue;
         for (int i = 0; i < users.size(); i++) {
-            curList = userGroupListMap.get(sortedUserList.get(i));
-            UserCoverGroup firstGroup = null;
-            for(UserCoverGroup curGroup : curList){
-                if(curGroup.isFeasibleBeforeInitMerge()){
-                    firstGroup = curGroup;
+            curUser = userList.get(i);
+            if(curUser.getStatus() == Utils.DRIVER) continue;
+            curQueue = curUser.getQueue();
+
+            UserCoverGroup firstGroup;
+            while((firstGroup = curQueue.poll()) != null){
+                firstGroup.updateUncoveredDistance();
+                if(firstGroup.isFeasibleBeforeInitMerge() && firstGroup.isCoveredBeforeInitMerge()){
                     break;
                 }
             }
 
             if(firstGroup != null) {
                 firstGroup.initMerge();
+                logger.debug(String.format("init merged: %s", firstGroup.getSummaryStr()));
 
-                for(UserCoverGroup curGroup : curList){
-                    boolean isUpdated = curGroup.updateUncoveredDistance();
-                    if (!curGroup.isFeasibleBeforeInitMerge()) {
-                        continue;
-                    }
+                if(!firstGroup.isAllCovered()){
+                    UserCoverGroup curGroup;
+                    while ((curGroup = curQueue.poll()) != null) {
+                        if (!curGroup.isFeasibleBeforeInitMerge()) {
+                            continue;
+                        }
 
-                    if (isUpdated) {
-                        firstGroup.addDriver(curGroup.getFirstDriverCandidate());
+                        logger.debug(String.format("before update pair: %s", curGroup.getSummaryStr()));
+                        boolean isUpdated = curGroup.updateUncoveredDistance();
+                        logger.debug(String.format("after  update pair: %s", curGroup.getSummaryStr()));
+
+                        if(!curGroup.isCoveredBeforeInitMerge()){
+                            continue;
+                        }
+
+                        if (isUpdated) {
+                            curQueue.offer(curGroup);
+                        } else {
+                            firstGroup.addDriver(curGroup.getFirstDriverCandidate());
+                            logger.debug(String.format("add: %s", firstGroup.getSummaryStr()));
+
+                            if(firstGroup.isAllCovered()) break;
+                        }
                     }
+                    firstGroup.makeFeasible(isTaxiOnly);
                 }
 
-                firstGroup.makeFeasible();
-                if (firstGroup.isFeasible()) {
+                ModelInstance.registeredFinishedRiderSet.add(firstGroup.getRider());
+                if (firstGroup.hasSaving()) {
+                    logger.debug(String.format("Final: %s", firstGroup.getSummaryStr()));
                     userGroups.add(firstGroup);
-//                    firstGroup.refreshAndRegisterDriverSetAndUpdateQueue();
+                    firstGroup.refreshAndRegisterDriverSet();
                 }
-                else{
+                else {
                     firstGroup.clear();
+                    logger.debug(String.format("Clear: %s", firstGroup.getSummaryStr()));
                 }
             }
         }
+
+        logger.debug("*******************************************************");
 
         for(UserCoverGroup finalGroup: userGroups) {
             logger.debug(finalGroup.getSummaryStr());
         }
 
+        logger.debug("*******************************************************");
+
         for(User user: users) {
-            logger.debug(user.toString());
+            logger.debug(user.getSummaryStr());
         }
 
     }

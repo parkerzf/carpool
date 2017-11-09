@@ -16,7 +16,7 @@ import java.util.*;
 public class MatchingSeqStaticAlgo {
     private static final Logger logger = LoggerFactory.getLogger(MatchingSeqStaticAlgo.class);
 
-    public static void run(List<User> users) {
+    public static void run(List<User> users, boolean isTaxiOnly, boolean isRandom) {
         // manage the users in non descending order of minimum uncovered distance in the sorted list
         List<User> userSortedList = new ArrayList<>();
 
@@ -34,8 +34,14 @@ public class MatchingSeqStaticAlgo {
             }
         }
 
-        Collections.sort(userSortedList);
-        logger.debug("Sorted User list size: {}", userSortedList.size());
+        if(isRandom){
+            Collections.shuffle(userSortedList);
+            logger.debug("Shuffle User list size: {}", userSortedList.size());
+        }
+        else{
+            Collections.sort(userSortedList);
+            logger.debug("Sorted User list size: {}", userSortedList.size());
+        }
 
         for (int i = 0; i < users.size(); i++) {
             logger.debug("User {}'s Queue size: {}", userSortedList.get(i).getUId(), userSortedList.get(i).getQueue().size());
@@ -89,7 +95,7 @@ public class MatchingSeqStaticAlgo {
                             if(firstGroup.isAllCovered()) break;
                         }
                     }
-                    firstGroup.makeFeasible();
+                    firstGroup.makeFeasible(isTaxiOnly);
                 }
 
                 ModelInstance.registeredFinishedRiderSet.add(firstGroup.getRider());

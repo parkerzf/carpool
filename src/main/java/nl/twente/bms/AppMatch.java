@@ -6,6 +6,7 @@ import grph.io.ParseException;
 import nl.twente.bms.algo.MatchingSeqAlgo;
 import nl.twente.bms.model.ModelInstance;
 import nl.twente.bms.model.ModelStats;
+import nl.twente.bms.utils.ExcelWriter;
 import nl.twente.bms.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,16 +29,18 @@ public class AppMatch
             Utils.TAXI_EUR_PER_KM = Double.parseDouble(args[2]);
         }
         ModelInstance.initInstance(2, graphPath, userPath);
-//        ModelInstance.initInstance(0, graphPath, userPath);
 
         ModelStats.computeInitCost(ModelInstance.users);
 
         long start = System.currentTimeMillis();
-        MatchingSeqAlgo.run(ModelInstance.users);
+        MatchingSeqAlgo.run(ModelInstance.users, false);
         long end = System.currentTimeMillis();
         ModelStats.runTime = (end - start) / 1000 + Math.round(((end - start) % 1000)/10.0)/100.0;
 
         ModelStats.computeStats(ModelInstance.users);
+        String excelFilePath = userPath.substring(0, userPath.length() - 4) + ".xlsm";
+        ExcelWriter.writeOutput(excelFilePath, AppMatch.class.getName(), 1);
+
         logger.debug("*******************************************************");
         logger.debug("init total cost: " + ModelStats.initCost);
         logger.debug("init total cost commuter: " + ModelStats.initCostCommuter);

@@ -18,19 +18,17 @@ public class ModelStats {
     public static double totalCost;
     public static double totalCostCommuter;
     public static double totalCostBusiness;
-//    public static double absCostSavingTotalPercent;
-//    public static double absCostSavingCommuterPercent;
-//    public static double absCostSavingBusinessPercent;
+
     public static double costSavingTotal;
     public static double costSavingCommuter;
     public static double costSavingBusiness;
     public static double taxiCostTotal;
     public static double taxiCostCommuter;
     public static double taxiCostBusiness;
-    public static double taxiDistance;
 
-//    public static double relTaxiCostCommuterPercent;
-//    public static double relTaxiCostBusinessPercent;
+    //distances
+    public static int taxiDistance;
+    public static int distanceSavingTotal;
 
     public static double runTime;
     public static double absDistanceSavingTotalPercent;
@@ -39,9 +37,9 @@ public class ModelStats {
     public static double relDistanceSavingCommuterPercent;
     public static double relDistanceSavingBusinessPercent;
 
-    public static double waitTimeTotal = 0;
-    public static double waitTimeCommuter = 0;
-    public static double waitTimeBusiness = 0;
+    public static double waitTimeTotal;
+    public static double waitTimeCommuter;
+    public static double waitTimeBusiness;
     public static int timeDeviationTotal;
     public static int timeDeviationCommuter;
     public static int timeDeviationBusiness;
@@ -49,11 +47,6 @@ public class ModelStats {
     public static int carpoolTimesTotal;
     public static int carpoolTimesCommuter;
     public static int carpoolTimesBusiness;
-
-    // pickup by other users, and taxi
-//    public static HashMap<Integer, Integer> pickupTimesDistributionTotal = new HashMap<>();
-//    public static HashMap<Integer, Integer> pickupTimesDistributionCommuter = new HashMap<>();
-//    public static HashMap<Integer, Integer> pickupTimesDistributionBusiness = new HashMap<>();
 
     public static int[] pickupTimesDistributionTotal = new int[10];
     public static int[] pickupTimesDistributionCommuter = new int[10];
@@ -70,13 +63,62 @@ public class ModelStats {
     public static double absTripleMatchDistanceCommuterPercent; // cap = 4
     public static double absTripleMatchDistanceBusinessPercent; // cap = 4
 
-    public static int numCars = 0;
+    public static int numCars;
+
+    public static void clear(){
+        initCost=0;
+        initCostCommuter=0;
+        initCostBusiness=0;
+        totalCost=0;
+        totalCostCommuter=0;
+        totalCostBusiness=0;
+
+        costSavingTotal=0;
+        costSavingCommuter=0;
+        costSavingBusiness=0;
+        taxiCostTotal=0;
+        taxiCostCommuter=0;
+        taxiCostBusiness=0;
+
+
+        taxiDistance=0;
+        distanceSavingTotal=0;
+
+        runTime=0;
+        absDistanceSavingTotalPercent=0;
+        absDistanceSavingCommuterPercent=0;
+        absDistanceSavingBusinessPercent=0;
+        relDistanceSavingCommuterPercent=0;
+        relDistanceSavingBusinessPercent=0;
+
+        waitTimeTotal=0;
+        waitTimeCommuter=0;
+        waitTimeBusiness=0;
+        timeDeviationTotal=0;
+        timeDeviationCommuter=0;
+        timeDeviationBusiness=0;
+
+        carpoolTimesTotal=0;
+        carpoolTimesCommuter=0;
+        carpoolTimesBusiness=0;
+
+        absSingleMatchDistanceTotalPercent=0;
+        absSingleMatchDistanceCommuterPercent=0;
+        absSingleMatchDistanceBusinessPercent=0;
+        absDoubleMatchDistanceTotalPercent=0;
+        absDoubleMatchDistanceCommuterPercent=0;
+        absDoubleMatchDistanceBusinessPercent=0;
+        absTripleMatchDistanceTotalPercent=0;
+        absTripleMatchDistanceCommuterPercent=0;
+        absTripleMatchDistanceBusinessPercent=0;
+
+        numCars = 0;
+    }
 
     public static void computeStats(List<User> users) {
 
         int distanceTotal = 0;
         int distanceCommuter = 0;
-        int distanceSavingTotal = 0;
         int distanceSavingCommuter = 0;
 
         Arrays.fill(pickupTimesDistributionTotal, 0);

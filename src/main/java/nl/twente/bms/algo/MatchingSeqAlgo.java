@@ -16,7 +16,7 @@ import java.util.*;
 public class MatchingSeqAlgo {
     private static final Logger logger = LoggerFactory.getLogger(MatchingSeqAlgo.class);
 
-    public static void run(List<User> users) {
+    public static void run(List<User> users, boolean isTaxiOnly) {
         // manage the users in non descending order of minimum uncovered distance in the priority queue
         PriorityQueue<User> userQueue = new PriorityQueue<>();
         // manage the user feasible pair in a hashmap
@@ -109,7 +109,7 @@ public class MatchingSeqAlgo {
                             if(firstGroup.isAllCovered()) break;
                         }
                     }
-                    firstGroup.makeFeasible();
+                    firstGroup.makeFeasible(isTaxiOnly);
                 }
 
                 ModelInstance.registeredFinishedRiderSet.add(firstGroup.getRider());

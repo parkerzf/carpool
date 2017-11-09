@@ -6,6 +6,7 @@ import grph.io.ParseException;
 import nl.twente.bms.algo.MatchingSeqStaticAlgo;
 import nl.twente.bms.model.ModelInstance;
 import nl.twente.bms.model.ModelStats;
+import nl.twente.bms.utils.ExcelWriter;
 import nl.twente.bms.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,11 +33,14 @@ public class AppStaticMatch
         ModelStats.computeInitCost(ModelInstance.users);
 
         long start = System.currentTimeMillis();
-        MatchingSeqStaticAlgo.run(ModelInstance.users);
+        MatchingSeqStaticAlgo.run(ModelInstance.users, false, false);
         long end = System.currentTimeMillis();
         ModelStats.runTime = (end - start) / 1000 + Math.round(((end - start) % 1000)/10.0)/100.0;
 
         ModelStats.computeStats(ModelInstance.users);
+        String excelFilePath = userPath.substring(0, userPath.length() - 4) + ".xlsm";
+        ExcelWriter.writeOutput(excelFilePath, AppStaticMatch.class.getName(), 1);
+
         logger.debug("*******************************************************");
         logger.debug("init total cost: " + ModelStats.initCost);
         logger.debug("init total cost commuter: " + ModelStats.initCostCommuter);

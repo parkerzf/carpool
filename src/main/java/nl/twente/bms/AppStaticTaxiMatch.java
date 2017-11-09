@@ -3,7 +3,7 @@ package nl.twente.bms;
 
 import grph.io.GraphBuildException;
 import grph.io.ParseException;
-import nl.twente.bms.algo.BasicAlgo;
+import nl.twente.bms.algo.MatchingSeqStaticAlgo;
 import nl.twente.bms.model.ModelInstance;
 import nl.twente.bms.model.ModelStats;
 import nl.twente.bms.utils.ExcelWriter;
@@ -16,9 +16,9 @@ import java.util.Arrays;
 import java.util.List;
 
 
-public class AppBasic
+public class AppStaticTaxiMatch
 {
-    private static final Logger logger = LoggerFactory.getLogger(AppBasic.class);
+    private static final Logger logger = LoggerFactory.getLogger(AppStaticTaxiMatch.class);
 
     public static void main( String[] args ) throws IOException, ParseException, GraphBuildException {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -33,13 +33,13 @@ public class AppBasic
         ModelStats.computeInitCost(ModelInstance.users);
 
         long start = System.currentTimeMillis();
-        BasicAlgo.run(ModelInstance.users, false);
+        MatchingSeqStaticAlgo.run(ModelInstance.users, true, false);
         long end = System.currentTimeMillis();
         ModelStats.runTime = (end - start) / 1000 + Math.round(((end - start) % 1000)/10.0)/100.0;
 
         ModelStats.computeStats(ModelInstance.users);
         String excelFilePath = userPath.substring(0, userPath.length() - 4) + ".xlsm";
-        ExcelWriter.writeOutput(excelFilePath, AppBasic.class.getName(), 1);
+        ExcelWriter.writeOutput(excelFilePath, AppStaticTaxiMatch.class.getName(), 1);
 
         logger.debug("*******************************************************");
         logger.debug("init total cost: " + ModelStats.initCost);
@@ -94,7 +94,8 @@ public class AppBasic
 
         logger.debug("num cars: " + ModelStats.numCars);
 
-        List<String> statList = Arrays.asList(Utils.getFileName(userPath),
+        List<String> statList = Arrays.asList(
+                Utils.getFileName(userPath),
                 String.valueOf(ModelStats.initCost),
                 String.valueOf(ModelStats.initCostCommuter),
                 String.valueOf(ModelStats.initCostBusiness),
