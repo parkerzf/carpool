@@ -1,0 +1,14 @@
+# sh scripts/sub1.sh exp_skew threshold_C51_0.5 100 0 50 20
+
+DATA_DIR=$1
+GRAPH_BASE=$2
+NUM_USER=$3
+NUM_SPOT=$4
+NUM_NODE=$5
+NUM_INSTANCE=$6
+
+BASEDIR=$(dirname "$0")
+
+${BASEDIR}/sub2.sh AppRandomMatch ${DATA_DIR} ${GRAPH_BASE} ${NUM_USER} ${NUM_SPOT} ${NUM_NODE} ${NUM_INSTANCE} 1000 1
+${BASEDIR}/sub2.sh AppRandomMatch ${DATA_DIR} ${GRAPH_BASE} ${NUM_USER} ${NUM_SPOT} ${NUM_NODE} ${NUM_INSTANCE} 1000 5
+${BASEDIR}/sub2.sh AppStaticTaxiMatch ${DATA_DIR} ${GRAPH_BASE} ${NUM_USER} ${NUM_SPOT} ${NUM_NODE} ${NUM_INSTANCE} 1000 1
