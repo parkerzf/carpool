@@ -36,9 +36,6 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
     }
 
     public void addDriver(User driver) {
-        if(driver.getUId()==25){
-            logger.debug("debug!");
-        }
         boolean isMerged = driver.merge(rider);
         if(isMerged == false){
             logger.error("should be able to merge: " + getSummaryStr());
@@ -50,9 +47,6 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
     }
 
     public boolean updateUncoveredDistance(){
-        if(getRider().getUId() == 76 && getFirstDriverCandidate().getUId() == 92){
-            logger.debug("debug!");
-        }
         if(initMerged == true){
             logger.error("should not be merged: " + getSummaryStr());
             System.exit(-1);
@@ -83,7 +77,7 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
     public String toString(){
         StringBuilder sb = new StringBuilder();
         sb.append("rider:u" + rider.getUId() + "|");
-        sb.append(String.format("total,uncover:%d,%d:", rider.getTotalDistance(), uncoveredDistance) + "|");
+        sb.append(String.format("total,uncover:%d,%d:", rider.getTotalDistance(), rider.getUncoveredDistance()) + "|");
         sb.append(String.format("self cost,rider cost: %.1f,%.1f|", rider.getSelfDrivingCost(), rider.getCost(true)));
 
         if(driverSet.size() == 0){
@@ -102,7 +96,7 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
     public String getSummaryStr(){
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("u%d(%s)|", rider.getUId(), Utils.getStatusStr(rider.getStatus())));
-        sb.append(String.format("total,uncover:%d,%d|", rider.getTotalDistance(), uncoveredDistance));
+        sb.append(String.format("total,uncover:%d,%d|", rider.getTotalDistance(), rider.getUncoveredDistance()));
         sb.append(String.format("self cost,rider cost: %.1f,%.1f|", rider.getSelfDrivingCost(), rider.getCost(true)));
 
         if(driverSet.size() == 0){
@@ -219,6 +213,15 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
                 endVertexInfo = rider.findAndResetToMostConservativeEnd(endVertexInfo);
             }
         }
+        else{
+            startVertexInfo = new int[2];
+            Arrays.fill(startVertexInfo, 0);
+
+            List<Leg> legs = rider.getLegs();
+            endVertexInfo = new int[2];
+            endVertexInfo[0] = legs.size() - 1;
+            endVertexInfo[1] = legs.get(legs.size() - 1).getSize() - 1;
+        }
 
         rider.fillBreaksWithTaxi(startVertexInfo, endVertexInfo);
 
@@ -319,9 +322,6 @@ public class UserCoverGroup implements Comparable<UserCoverGroup> {
     // for the dynamic matching algo
     public void refreshAndRegisterDriverSetAndUpdateQueue(PriorityQueue<User> userQueue,
                                                           HashMap<User, ArrayList<UserCoverGroup>> driverGroupMap) {
-        if(rider.getUId() == 62){
-            logger.debug("debug!");
-        }
         // update carriedlegs and carrylegs
         for(Leg leg: rider.getLegs()){
             for(Leg driverLeg: leg.getLegs()){

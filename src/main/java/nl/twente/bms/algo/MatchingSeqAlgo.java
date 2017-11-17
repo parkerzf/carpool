@@ -111,6 +111,9 @@ public class MatchingSeqAlgo {
                     }
                     firstGroup.makeFeasible(isTaxiOnly);
                 }
+//                if(firstGroup.getRider().getUId()==23){
+//                    logger.debug("debug!");
+//                }
 
                 ModelInstance.registeredFinishedRiderSet.add(firstGroup.getRider());
                 if (firstGroup.hasSaving()) {
@@ -119,9 +122,6 @@ public class MatchingSeqAlgo {
                     firstGroup.refreshAndRegisterDriverSetAndUpdateQueue(userQueue, driverGroupMap);
                 }
                 else {
-                    if(firstGroup.getRider().getUId()==81){
-                        logger.debug("debug!");
-                    }
                     firstGroup.clear();
                     logger.debug(String.format("Clear: %s", firstGroup.getSummaryStr()));
                 }

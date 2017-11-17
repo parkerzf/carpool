@@ -484,9 +484,6 @@ public class User implements Comparable<User> {
     }
 
     public void clear() {
-        if(getUId() == 25){
-            logger.debug("debug!");
-        }
         for(Leg leg: legs){
             leg.clear();
         }

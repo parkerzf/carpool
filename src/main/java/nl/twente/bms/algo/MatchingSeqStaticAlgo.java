@@ -95,8 +95,13 @@ public class MatchingSeqStaticAlgo {
                             if(firstGroup.isAllCovered()) break;
                         }
                     }
+                    if(firstGroup.getRider().getUId()==41){
+                        logger.debug("debug!");
+                    }
                     firstGroup.makeFeasible(isTaxiOnly);
+//                    firstGroup.updateUncoveredDistance();
                 }
+
 
                 ModelInstance.registeredFinishedRiderSet.add(firstGroup.getRider());
                 if (firstGroup.hasSaving()) {
