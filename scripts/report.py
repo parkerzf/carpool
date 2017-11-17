@@ -23,7 +23,7 @@ out_path = dir_path + '/'  + base_path + '_stats.txt'
 f = open(out_path, 'w')
 
 cpu_arr = np.zeros((1, len(filepaths)))
-
+bound_arr = np.zeros((2, len(filepaths)))
 heuristic_arr = np.zeros((6, len(filepaths))) if max_row == 10 else np.zeros((3, len(filepaths)))
 
 appmatch_1000_arr = np.zeros((5, len(filepaths)))
@@ -59,23 +59,28 @@ for idx, filepath in enumerate(filepaths):
 
 
     try:
-        # CPU time = Average of [(AIMMS Output).B10]
-        cpu_arr[0, idx] = float(ws_output['B10'].value)
+        bound_arr[0, idx] = ws_output['B13'].value
+        bound_arr[1, idx] = ws_output['B16'].value
 
-        # Heuristic:
-        # Objective = Average of [ (heuristic queue sol - (AIMMS Output).B16) / (0.5 * (AIMMS Output).B13 - (AIMMS Output).B16) ]
-        # Objective = Average of [ (heuristic sortlist sol - (AIMMS Output).B16) / (0.5 * (AIMMS Output).B13 - (AIMMS Output).B16) ]
-        # Objective = Average of [ (heuristic random 10 sol - (AIMMS Output).B16) / (0.5 * (AIMMS Output).B13 - (AIMMS Output).B16) ] 
         if max_row != 4:
+            # CPU time = Average of [(AIMMS Output).B10]
+            cpu_arr[0, idx] = float(ws_output['B10'].value)
+
+            # Heuristic:
+            # Objective = Average of [ (heuristic queue sol - (AIMMS Output).B16) / (0.5 * (AIMMS Output).B13 - (AIMMS Output).B16) ]
+            # Objective = Average of [ (heuristic sortlist sol - (AIMMS Output).B16) / (0.5 * (AIMMS Output).B13 - (AIMMS Output).B16) ]
+            # Objective = Average of [ (heuristic random 10 sol - (AIMMS Output).B16) / (0.5 * (AIMMS Output).B13 - (AIMMS Output).B16) ] 
             queue_sol = ws_algo_output['E2'].value
             sortlist_sol = ws_algo_output['E3'].value
             random_10_sol = ws_algo_output['E7'].value
+ 
             heuristic_arr[0, idx] = 0 if (0.5 * ws_output['B13'].value - ws_output['B16'].value == 0) else \
                 (queue_sol - ws_output['B16'].value) / (0.5 * ws_output['B13'].value - ws_output['B16'].value)
             heuristic_arr[1, idx] = 0 if (0.5 * ws_output['B13'].value - ws_output['B16'].value == 0) else \
                 (sortlist_sol - ws_output['B16'].value) / (0.5 * ws_output['B13'].value - ws_output['B16'].value)
             heuristic_arr[2, idx] = 0 if (0.5 * ws_output['B13'].value - ws_output['B16'].value == 0) else \
                 (random_10_sol - ws_output['B16'].value) / (0.5 * ws_output['B13'].value - ws_output['B16'].value)
+
         if max_row == 10:
             random_1_sol = ws_algo_output['E8'].value
             random_5_sol = ws_algo_output['E9'].value
@@ -143,7 +148,7 @@ for idx, filepath in enumerate(filepaths):
             appstatictaximatch_1000_arr[3, idx] = ws_algo_output['G10'].value
             appstatictaximatch_1000_arr[4, idx] = ws_algo_output['H10'].value
 
-        if max_row == 3:
+        if max_row == 4:
             apprandommatch_1000_1_arr[0, idx] = ws_algo_output['D2'].value
             apprandommatch_1000_1_arr[1, idx] = ws_algo_output['E2'].value
             apprandommatch_1000_1_arr[2, idx] = ws_algo_output['F2'].value
@@ -172,7 +177,10 @@ np.set_printoptions(suppress=True, precision=4)
 f.write('Number of instances: '+ str(num_instances) + '\n')
 
 if num_instances != 0:
-    if max_row != 4:
+    f.write('Bound'+ '\n')
+    f.write(np.array_str(np.sum(bound_arr, axis=1)/num_instances)+ '\n')
+
+    if max_row == 7 or max_row == 10:
         f.write('CPU time:'+ '\n')
         f.write(np.array_str(np.sum(cpu_arr, axis=1)/num_instances) + '\n')
         f.write('Heuristic'+ '\n')
@@ -189,7 +197,8 @@ if num_instances != 0:
         f.write(np.array_str(np.sum(appstaticmatch_2_arr, axis=1)/num_instances)+ '\n')
         f.write('apprandommatch 1000, 10 times'+ '\n')
         f.write(np.array_str(np.sum(apprandommatch_1000_10_arr, axis=1)/num_instances)+ '\n')
-    if max_row != 7:
+
+    if max_row == 4 or max_row == 10:
         f.write('apprandommatch 1000, 1 times'+ '\n')
         f.write(np.array_str(np.sum(apprandommatch_1000_1_arr, axis=1)/num_instances)+ '\n')
         f.write('apprandommatch 1000, 5 times'+ '\n')
